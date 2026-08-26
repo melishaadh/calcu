@@ -1,0 +1,244 @@
+# -------------------- history-service --------------------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: history-service
+  namespace: calcu
+  labels:
+    app: history-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: history-service
+  template:
+    metadata:
+      labels:
+        app: history-service
+    spec:
+      containers:
+        - name: history-service
+          image: REPLACE_ECR_REGISTRY/melishaadh/calcu-history-service:latest
+          ports:
+            - containerPort: 5003
+          envFrom:
+            - secretRef:
+                name: postgres-credentials
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 250m
+              memory: 256Mi
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 5003
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 5003
+            initialDelaySeconds: 20
+            periodSeconds: 20
+            timeoutSeconds: 3
+            failureThreshold: 3
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: history-service
+  namespace: calcu
+spec:
+  type: ClusterIP
+  selector:
+    app: history-service
+  ports:
+    - port: 5003
+      targetPort: 5003
+---
+# -------------------- scientific-engine --------------------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: scientific-engine
+  namespace: calcu
+  labels:
+    app: scientific-engine
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: scientific-engine
+  template:
+    metadata:
+      labels:
+        app: scientific-engine
+    spec:
+      containers:
+        - name: scientific-engine
+          image: REPLACE_ECR_REGISTRY/melishaadh/calcu-scientific-engine:latest
+          ports:
+            - containerPort: 5001
+          env:
+            - name: HISTORY_SERVICE_URL
+              value: "http://history-service:5003"
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 250m
+              memory: 256Mi
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 5001
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 5001
+            initialDelaySeconds: 10
+            periodSeconds: 20
+            timeoutSeconds: 3
+            failureThreshold: 3
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: scientific-engine
+  namespace: calcu
+spec:
+  type: ClusterIP
+  selector:
+    app: scientific-engine
+  ports:
+    - port: 5001
+      targetPort: 5001
+---
+# -------------------- financial-engine --------------------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: financial-engine
+  namespace: calcu
+  labels:
+    app: financial-engine
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: financial-engine
+  template:
+    metadata:
+      labels:
+        app: financial-engine
+    spec:
+      containers:
+        - name: financial-engine
+          image: REPLACE_ECR_REGISTRY/melishaadh/calcu-financial-engine:latest
+          ports:
+            - containerPort: 5002
+          env:
+            - name: HISTORY_SERVICE_URL
+              value: "http://history-service:5003"
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 250m
+              memory: 256Mi
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 5002
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 5002
+            initialDelaySeconds: 10
+            periodSeconds: 20
+            timeoutSeconds: 3
+            failureThreshold: 3
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: financial-engine
+  namespace: calcu
+spec:
+  type: ClusterIP
+  selector:
+    app: financial-engine
+  ports:
+    - port: 5002
+      targetPort: 5002
+---
+# -------------------- frontend --------------------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+  namespace: calcu
+  labels:
+    app: frontend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: frontend
+  template:
+    metadata:
+      labels:
+        app: frontend
+    spec:
+      containers:
+        - name: frontend
+          image: REPLACE_ECR_REGISTRY/melishaadh/calcu-frontend:latest
+          ports:
+            - containerPort: 80
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 150m
+              memory: 128Mi
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 10
+            periodSeconds: 20
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend
+  namespace: calcu
+spec:
+  type: ClusterIP
+  selector:
+    app: frontend
+  ports:
+    - port: 80
+      targetPort: 80

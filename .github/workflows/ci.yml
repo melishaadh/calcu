@@ -1,0 +1,140 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  AWS_REGION: us-east-1
+  ECR_REPOSITORY_PREFIX: melishaadh/calcu
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  test:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: [scientific-engine, financial-engine, history-service]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+          cache-dependency-path: services/${{ matrix.service }}/requirements.txt
+
+      - name: Install dependencies
+        working-directory: services/${{ matrix.service }}
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest
+
+      - name: Run pytest
+        working-directory: services/${{ matrix.service }}
+        run: pytest -v
+
+  build-scan-push:
+    name: Build, Scan & Push
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    strategy:
+      matrix:
+        service:
+          - name: scientific-engine
+            context: services/scientific-engine
+          - name: financial-engine
+            context: services/financial-engine
+          - name: history-service
+            context: services/history-service
+          - name: frontend
+            context: frontend
+          - name: nginx
+            context: nginx
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: ecr-login
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build Docker image
+        env:
+          REGISTRY: ${{ steps.ecr-login.outputs.registry }}
+          REPO: melishaadh/calcu-${{ matrix.service.name }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build -t $REGISTRY/$REPO:$IMAGE_TAG -t $REGISTRY/$REPO:latest ${{ matrix.service.context }}
+
+      - name: Run Trivy vulnerability scan
+        uses: aquasecurity/trivy-action@0.24.0
+        with:
+          image-ref: ${{ steps.ecr-login.outputs.registry }}/melishaadh/calcu-${{ matrix.service.name }}:${{ github.sha }}
+          format: table
+          severity: CRITICAL,HIGH
+          exit-code: "1"
+          ignore-unfixed: true
+
+      - name: Push image to Amazon ECR
+        if: success()
+        env:
+          REGISTRY: ${{ steps.ecr-login.outputs.registry }}
+          REPO: melishaadh/calcu-${{ matrix.service.name }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker push $REGISTRY/$REPO:$IMAGE_TAG
+          docker push $REGISTRY/$REPO:latest
+
+  notify:
+    name: Slack Notification
+    needs: [test, build-scan-push]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Determine status
+        id: status
+        run: |
+          if [ "${{ contains(needs.*.result, 'failure') }}" = "true" ]; then
+            echo "state=FAILURE" >> "$GITHUB_OUTPUT"
+            echo "color=#FF0000" >> "$GITHUB_OUTPUT"
+          else
+            echo "state=SUCCESS" >> "$GITHUB_OUTPUT"
+            echo "color=#36A64F" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Send Slack notification
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          curl -sf -X POST -H 'Content-type: application/json' \
+            --data "$(cat <<EOF
+          {
+            "attachments": [
+              {
+                "color": "${{ steps.status.outputs.color }}",
+                "title": "CI ${{ steps.status.outputs.state }}: calcu",
+                "text": "*Repository:* ${{ github.repository }}\n*Branch:* ${{ github.ref_name }}\n*Commit:* \`${{ github.sha }}\`\n*Author:* ${{ github.actor }}\n*Message:* ${{ github.event.head_commit.message }}\n*Run:* ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+              }
+            ]
+          }
+          EOF
+          )" \
+            "$SLACK_WEBHOOK_URL"

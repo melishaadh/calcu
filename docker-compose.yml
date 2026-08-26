@@ -1,0 +1,96 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: calcu-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: calcu_user
+      POSTGRES_PASSWORD: calcu_pass
+      POSTGRES_DB: calcu_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U calcu_user -d calcu_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - calcu-net
+
+  history-service:
+    build:
+      context: ./services/history-service
+    container_name: calcu-history-service
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql+psycopg2://calcu_user:calcu_pass@postgres:5432/calcu_db
+    depends_on:
+      postgres:
+        condition: service_healthy
+    expose:
+      - "5003"
+    networks:
+      - calcu-net
+
+  scientific-engine:
+    build:
+      context: ./services/scientific-engine
+    container_name: calcu-scientific-engine
+    restart: unless-stopped
+    environment:
+      HISTORY_SERVICE_URL: http://history-service:5003
+    depends_on:
+      - history-service
+    expose:
+      - "5001"
+    networks:
+      - calcu-net
+
+  financial-engine:
+    build:
+      context: ./services/financial-engine
+    container_name: calcu-financial-engine
+    restart: unless-stopped
+    environment:
+      HISTORY_SERVICE_URL: http://history-service:5003
+    depends_on:
+      - history-service
+    expose:
+      - "5002"
+    networks:
+      - calcu-net
+
+  frontend:
+    build:
+      context: ./frontend
+    container_name: calcu-frontend
+    restart: unless-stopped
+    expose:
+      - "80"
+    networks:
+      - calcu-net
+
+  nginx:
+    build:
+      context: ./nginx
+    container_name: calcu-nginx
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    depends_on:
+      - frontend
+      - scientific-engine
+      - financial-engine
+      - history-service
+    networks:
+      - calcu-net
+
+volumes:
+  postgres_data:
+
+networks:
+  calcu-net:
+    driver: bridge

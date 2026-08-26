@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Distributed Calculator</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header>
+    <h1>Distributed Scientific &amp; Financial Calculator</h1>
+    <p class="subtitle">Flask microservices &middot; Docker &middot; Kubernetes &middot; AWS</p>
+  </header>
+
+  <main>
+    <section class="card">
+      <h2>Scientific Engine</h2>
+      <div class="form-row">
+        <select id="sci-operation">
+          <option value="sin">sin</option>
+          <option value="cos">cos</option>
+          <option value="tan">tan</option>
+          <option value="asin">asin</option>
+          <option value="acos">acos</option>
+          <option value="atan">atan</option>
+          <option value="log">log (natural)</option>
+          <option value="log10">log10</option>
+          <option value="exp">exp</option>
+          <option value="sqrt">sqrt</option>
+          <option value="pow">pow (value^base)</option>
+          <option value="factorial">factorial</option>
+        </select>
+        <input id="sci-value" type="number" placeholder="value" />
+        <input id="sci-base" type="number" placeholder="base (pow only)" />
+        <button onclick="callScientific()">Calculate</button>
+      </div>
+      <div id="sci-result" class="result"></div>
+    </section>
+
+    <section class="card">
+      <h2>Financial Engine</h2>
+      <div class="form-row">
+        <select id="fin-operation" onchange="toggleFinancialFields()">
+          <option value="simple_interest">Simple Interest</option>
+          <option value="compound_interest">Compound Interest</option>
+          <option value="emi">Monthly EMI</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <input id="fin-principal" type="number" placeholder="principal" />
+        <input id="fin-rate" type="number" placeholder="rate (%)" />
+        <input id="fin-time" type="number" placeholder="time (years)" />
+        <input id="fin-tenure" type="number" placeholder="tenure (months)" class="hidden" />
+        <button onclick="callFinancial()">Calculate</button>
+      </div>
+      <div id="fin-result" class="result"></div>
+    </section>
+
+    <section class="card">
+      <h2>Live Calculation History</h2>
+      <button onclick="loadHistory()">Refresh</button>
+      <ul id="history-list"></ul>
+    </section>
+  </main>
+
+  <footer>
+    <p>calcu &mdash; end-to-end DevOps demo project</p>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
