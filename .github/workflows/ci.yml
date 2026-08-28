@@ -43,10 +43,10 @@ jobs:
         service: [scientific-engine, financial-engine, history-service]
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.11"
           cache: "pip"
@@ -88,7 +88,7 @@ jobs:
             context: nginx
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       # Log in to Docker Hub using secrets stored in GitHub
       # (Set these in: Repo Settings -> Secrets and variables -> Actions)
@@ -112,7 +112,7 @@ jobs:
       # "exit-code: 1" makes the build FAIL if a CRITICAL or HIGH vulnerability
       # with a known fix is found - remove/relax this once you're comfortable.
       - name: Run Trivy vulnerability scan
-        uses: aquasecurity/trivy-action@0.24.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: ${{ env.IMAGE_PREFIX }}-${{ matrix.service.name }}:${{ github.sha }}
           format: table
