@@ -15,7 +15,19 @@ DATABASE_URL = os.environ.get(
     "postgresql+psycopg2://calcu_user:calcu_pass@postgres:5432/calcu_db",
 )
 
-engine = create_engine(DATABASE_URL, pool_pre_ping=True, pool_size=5, max_overflow=10)
+def _build_engine(url):
+    """
+    SQLite (used during tests) runs on SingletonThreadPool/StaticPool, which
+    rejects the QueuePool-only args pool_size/max_overflow with a TypeError.
+    Only pass those when connecting to a real pooled backend like PostgreSQL.
+    """
+    engine_kwargs = {"pool_pre_ping": True}
+    if not url.startswith("sqlite"):
+        engine_kwargs.update(pool_size=5, max_overflow=10)
+    return create_engine(url, **engine_kwargs)
+
+
+engine = _build_engine(DATABASE_URL)
 SessionLocal = scoped_session(sessionmaker(bind=engine, autoflush=False, autocommit=False))
 Base = declarative_base()
 
