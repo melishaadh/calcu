@@ -28,11 +28,6 @@ header h1 {
   font-size: 1.8rem;
 }
 
-.subtitle {
-  color: var(--muted);
-  margin-top: 0.25rem;
-}
-
 main {
   max-width: 720px;
   margin: 0 auto;
@@ -113,11 +108,4 @@ button:hover {
   padding: 0.5rem 0;
   border-bottom: 1px solid #334155;
   font-size: 0.9rem;
-}
-
-footer {
-  text-align: center;
-  color: var(--muted);
-  padding: 1rem;
-  font-size: 0.85rem;
 }
