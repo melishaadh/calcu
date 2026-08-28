@@ -3,7 +3,7 @@ FROM nginx:1.27-alpine AS runtime
 
 # Patch OS packages against CVEs already fixed upstream but not yet in the
 # base image (libssl3/libcrypto3, musl, libexpat, libpng, libxml2, zlib, ...).
-RUN apk --no-cache upgrade
+RUN apk update && apk upgrade --no-cache
 
 RUN rm -rf /usr/share/nginx/html/*
 COPY index.html style.css app.js /usr/share/nginx/html/
