@@ -4,11 +4,27 @@ import os
 
 import requests
 from flask import Flask, jsonify, request
+from werkzeug.exceptions import HTTPException
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("scientific-engine")
 
 app = Flask(__name__)
+
+
+@app.errorhandler(Exception)
+def handle_any_error(exc):
+    """
+    Flask's default error pages are HTML, which breaks the frontend's
+    JSON.parse() call with a cryptic "unexpected character at line 1
+    column 1" error. This guarantees EVERY error response - a 404 from a
+    bad path, a 405 from a wrong HTTP method, a math OverflowError, or any
+    other unhandled exception - always comes back as JSON instead.
+    """
+    if isinstance(exc, HTTPException):
+        return jsonify({"error": exc.description}), exc.code
+    logger.exception("Unhandled exception")
+    return jsonify({"error": "Internal server error"}), 500
 
 HISTORY_SERVICE_URL = os.environ.get("HISTORY_SERVICE_URL", "http://history-service:5003")
 

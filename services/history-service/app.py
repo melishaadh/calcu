@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 from flask import Flask, jsonify, request
 from sqlalchemy import Column, DateTime, Integer, Numeric, String, create_engine, desc, text
 from sqlalchemy.orm import declarative_base, scoped_session, sessionmaker
+from werkzeug.exceptions import HTTPException
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("history-service")
@@ -39,6 +40,22 @@ class CalculationHistory(Base):
 
 
 app = Flask(__name__)
+
+
+@app.errorhandler(Exception)
+def handle_any_error(exc):
+    """
+    Flask's default error pages are HTML, which breaks the frontend's
+    JSON.parse() call with a cryptic "unexpected character at line 1
+    column 1" error. This guarantees EVERY error response - a 404 from a
+    bad path, a 405 from a wrong HTTP method, or any other unhandled
+    exception (e.g. the database being unreachable) - always comes back
+    as JSON instead.
+    """
+    if isinstance(exc, HTTPException):
+        return jsonify({"error": exc.description}), exc.code
+    logger.exception("Unhandled exception")
+    return jsonify({"error": "Internal server error"}), 500
 
 
 @app.teardown_appcontext
