@@ -1,0 +1,160 @@
+# gateway.yaml
+#
+# THE FIX for "calculations don't happen when I click Calculate":
+#
+# The `frontend` Deployment only serves static files (index.html/style.css/
+# app.js) - its image has NO reverse-proxy rules baked in, so if you reach
+# the app through the `frontend` Service directly (port-forward or NodePort
+# on `frontend` itself), every /api/* call the browser makes has nowhere to
+# go and silently fails.
+#
+# This file adds a dedicated "gateway" pod running the SAME nginx.conf you
+# already use in Docker Compose (mounted here via a ConfigMap, completely
+# unmodified - its upstream names already match the K8s Service names:
+# frontend:80, scientific-engine:5001, financial-engine:5002,
+# history-service:5003). Access the app through THIS Service from now on,
+# not the bare `frontend` Service.
+#
+# This does NOT depend on an Ingress Controller being installed/enabled -
+# it's a self-contained routing layer, so it works even if `minikube addons
+# enable ingress` was never run. (k8s/ingress.yaml still works too, as a
+# second access path, once an Ingress Controller is enabled.)
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gateway-nginx-config
+  namespace: calcu
+data:
+  # This is a byte-for-byte copy of nginx/nginx.conf - keep the two in sync
+  # if you ever change one.
+  nginx.conf: |
+    worker_processes auto;
+
+    events {
+        worker_connections 1024;
+    }
+
+    http {
+        include       mime.types;
+        default_type  application/octet-stream;
+        sendfile      on;
+
+        upstream frontend_upstream {
+            server frontend:80;
+        }
+
+        upstream scientific_upstream {
+            server scientific-engine:5001;
+        }
+
+        upstream financial_upstream {
+            server financial-engine:5002;
+        }
+
+        upstream history_upstream {
+            server history-service:5003;
+        }
+
+        server {
+            listen 80;
+            server_name _;
+
+            client_max_body_size 1m;
+
+            location /api/scientific {
+                proxy_pass http://scientific_upstream/api/scientific;
+                proxy_set_header Host $host;
+                proxy_set_header X-Real-IP $remote_addr;
+                proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                proxy_read_timeout 10s;
+            }
+
+            location /api/financial {
+                proxy_pass http://financial_upstream/api/financial;
+                proxy_set_header Host $host;
+                proxy_set_header X-Real-IP $remote_addr;
+                proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                proxy_read_timeout 10s;
+            }
+
+            location /api/history {
+                proxy_pass http://history_upstream/api/history;
+                proxy_set_header Host $host;
+                proxy_set_header X-Real-IP $remote_addr;
+                proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                proxy_read_timeout 10s;
+            }
+
+            location / {
+                proxy_pass http://frontend_upstream/;
+                proxy_set_header Host $host;
+                proxy_set_header X-Real-IP $remote_addr;
+                proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            }
+        }
+    }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gateway
+  namespace: calcu
+  labels:
+    app: gateway
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: gateway
+  template:
+    metadata:
+      labels:
+        app: gateway
+    spec:
+      containers:
+        - name: gateway
+          image: nginx:alpine
+          ports:
+            - containerPort: 80
+          volumeMounts:
+            - name: nginx-config
+              mountPath: /etc/nginx/nginx.conf   # Replaces the image's default config with ours
+              subPath: nginx.conf
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 150m
+              memory: 128Mi
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 10
+            periodSeconds: 20
+      volumes:
+        - name: nginx-config
+          configMap:
+            name: gateway-nginx-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: gateway
+  namespace: calcu
+spec:
+  type: NodePort         # Reachable from outside the cluster without needing an Ingress Controller
+  selector:
+    app: gateway
+  ports:
+    - port: 80
+      targetPort: 80
+      nodePort: 30080     # Visit this port - see README for the exact minikube command

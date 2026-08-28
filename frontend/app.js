@@ -85,7 +85,37 @@ async function loadHistory() {
   }
 }
 
+// LIVE_POLL_INTERVAL_MS controls how often the history feed re-fetches on
+// its own, so it reflects calculations made by anyone (any pod, any tab) -
+// not just the one you personally just ran. This is what actually makes the
+// "Live Calculation History" section live; without it, the list only ever
+// updated after your own manual clicks.
+const LIVE_POLL_INTERVAL_MS = 4000;
+let livePollTimer = null;
+
+function startLivePolling() {
+  if (livePollTimer) return; // avoid stacking multiple intervals
+  livePollTimer = setInterval(loadHistory, LIVE_POLL_INTERVAL_MS);
+}
+
+function stopLivePolling() {
+  clearInterval(livePollTimer);
+  livePollTimer = null;
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   toggleFinancialFields();
   loadHistory();
+  startLivePolling();
+});
+
+// Pause polling while the tab is hidden (saves requests), resume when it's
+// visible again so the feed is always fresh the moment you look back at it.
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) {
+    stopLivePolling();
+  } else {
+    loadHistory();
+    startLivePolling();
+  }
 });

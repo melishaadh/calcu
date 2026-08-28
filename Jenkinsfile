@@ -32,11 +32,7 @@ pipeline {
     environment {
         // The Docker Hub username where GitHub Actions pushed our images.
         // Change this to your own Docker Hub username.
-<<<<<<< HEAD
-        DOCKERHUB_USERNAME = 'your-dockerhub-username'
-=======
         DOCKERHUB_USERNAME = 'melishaadh'
->>>>>>> 7a6f10a77d6c349bf7711c6e38bf28b29af5119f
 
         // Pulled in from Jenkins Credentials (kind: Secret Text) - keeps the
         // real Slack URL out of this file and out of Git history.
