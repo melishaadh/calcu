@@ -4,17 +4,6 @@
 # of this container running, and automatically replace any that crash."
 # Each matching "Service" gives that group of pods a stable network name
 # (e.g. "history-service") so other pods can reliably find them.
-#
-# NOTE ON PLACEHOLDERS: "DOCKERHUB_USERNAME_PLACEHOLDER" and
-# "IMAGE_TAG_PLACEHOLDER" below get automatically replaced by the Jenkinsfile
-# ("Update Image Tags" stage) right before every deployment. If you're
-# applying this file manually (without Jenkins), replace them yourself first:
-#   sed -i 's|DOCKERHUB_USERNAME_PLACEHOLDER|your-dockerhub-username|g; s|IMAGE_TAG_PLACEHOLDER|latest|g' k8s/deployments-and-services.yaml
-#
-# NOTE ON THE GATEWAY: Docker Compose uses our own "nginx" container as a
-# gateway (see nginx/nginx.conf). In Kubernetes, the standard Nginx Ingress
-# Controller (see ingress.yaml) plays that exact same role, so there is no
-# separate "gateway" Deployment here.
 
 # -------------------- history-service --------------------
 apiVersion: apps/v1
@@ -36,12 +25,8 @@ spec:
     spec:
       containers:
         - name: history-service
-<<<<<<< HEAD
           image: history-service:latest
           imagePullPolicy: IfNotPresent
-=======
-          image: DOCKERHUB_USERNAME_PLACEHOLDER/calcu-history-service:IMAGE_TAG_PLACEHOLDER
->>>>>>> 7a6f10a77d6c349bf7711c6e38bf28b29af5119f
           ports:
             - containerPort: 5003
           envFrom:
@@ -104,12 +89,8 @@ spec:
     spec:
       containers:
         - name: scientific-engine
-<<<<<<< HEAD
           image: scientific-engine:latest
           imagePullPolicy: IfNotPresent
-=======
-          image: DOCKERHUB_USERNAME_PLACEHOLDER/calcu-scientific-engine:IMAGE_TAG_PLACEHOLDER
->>>>>>> 7a6f10a77d6c349bf7711c6e38bf28b29af5119f
           ports:
             - containerPort: 5001
           env:
@@ -172,12 +153,8 @@ spec:
     spec:
       containers:
         - name: financial-engine
-<<<<<<< HEAD
           image: financial-engine:latest
           imagePullPolicy: IfNotPresent
-=======
-          image: DOCKERHUB_USERNAME_PLACEHOLDER/calcu-financial-engine:IMAGE_TAG_PLACEHOLDER
->>>>>>> 7a6f10a77d6c349bf7711c6e38bf28b29af5119f
           ports:
             - containerPort: 5002
           env:
@@ -240,12 +217,8 @@ spec:
     spec:
       containers:
         - name: frontend
-<<<<<<< HEAD
           image: frontend:latest
           imagePullPolicy: IfNotPresent
-=======
-          image: DOCKERHUB_USERNAME_PLACEHOLDER/calcu-frontend:IMAGE_TAG_PLACEHOLDER
->>>>>>> 7a6f10a77d6c349bf7711c6e38bf28b29af5119f
           ports:
             - containerPort: 80
           resources:
