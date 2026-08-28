@@ -36,8 +36,12 @@ spec:
     spec:
       containers:
         - name: history-service
+<<<<<<< HEAD
           image: history-service:latest
           imagePullPolicy: IfNotPresent
+=======
+          image: DOCKERHUB_USERNAME_PLACEHOLDER/calcu-history-service:IMAGE_TAG_PLACEHOLDER
+>>>>>>> 7a6f10a77d6c349bf7711c6e38bf28b29af5119f
           ports:
             - containerPort: 5003
           envFrom:
@@ -100,8 +104,12 @@ spec:
     spec:
       containers:
         - name: scientific-engine
+<<<<<<< HEAD
           image: scientific-engine:latest
           imagePullPolicy: IfNotPresent
+=======
+          image: DOCKERHUB_USERNAME_PLACEHOLDER/calcu-scientific-engine:IMAGE_TAG_PLACEHOLDER
+>>>>>>> 7a6f10a77d6c349bf7711c6e38bf28b29af5119f
           ports:
             - containerPort: 5001
           env:
@@ -164,8 +172,12 @@ spec:
     spec:
       containers:
         - name: financial-engine
+<<<<<<< HEAD
           image: financial-engine:latest
           imagePullPolicy: IfNotPresent
+=======
+          image: DOCKERHUB_USERNAME_PLACEHOLDER/calcu-financial-engine:IMAGE_TAG_PLACEHOLDER
+>>>>>>> 7a6f10a77d6c349bf7711c6e38bf28b29af5119f
           ports:
             - containerPort: 5002
           env:
@@ -228,8 +240,12 @@ spec:
     spec:
       containers:
         - name: frontend
+<<<<<<< HEAD
           image: frontend:latest
           imagePullPolicy: IfNotPresent
+=======
+          image: DOCKERHUB_USERNAME_PLACEHOLDER/calcu-frontend:IMAGE_TAG_PLACEHOLDER
+>>>>>>> 7a6f10a77d6c349bf7711c6e38bf28b29af5119f
           ports:
             - containerPort: 80
           resources:
