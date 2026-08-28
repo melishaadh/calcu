@@ -15,6 +15,18 @@ const FIN_FIELDS = {
  */
 async function parseJsonResponse(resp) {
   const raw = await resp.text();
+  const contentType = resp.headers.get("content-type") || "";
+
+  // Check the Content-Type header FIRST: a 404/502 page from nginx or a
+  // Flask HTML error page reports "text/html", not "application/json" - so
+  // this catches the problem before even attempting to parse, and reports
+  // it as a content-type mismatch rather than a generic parse failure.
+  if (!contentType.includes("application/json")) {
+    const snippet = raw.slice(0, 200).replace(/\s+/g, " ").trim();
+    throw new Error(
+      `Expected JSON but got "${contentType || "unknown"}" (HTTP ${resp.status}): ${snippet || "(empty body)"}`
+    );
+  }
 
   let data;
   try {
