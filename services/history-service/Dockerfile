@@ -20,6 +20,7 @@ RUN pip install --no-cache-dir --upgrade pip && \
 FROM python:3.11-slim AS runtime
 
 RUN apt-get update && \
+    apt-get upgrade -y --no-install-recommends && \
     apt-get install -y --no-install-recommends libpq5 && \
     rm -rf /var/lib/apt/lists/* && \
     groupadd --gid 1000 appuser && \

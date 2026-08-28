@@ -15,7 +15,12 @@ RUN pip install --no-cache-dir --upgrade pip && \
 # ---- Runtime stage ----
 FROM python:3.11-slim AS runtime
 
-RUN groupadd --gid 1000 appuser && \
+# Patch OS packages against CVEs already fixed upstream but not yet baked
+# into the base image, then create the non-root runtime user.
+RUN apt-get update && \
+    apt-get upgrade -y --no-install-recommends && \
+    rm -rf /var/lib/apt/lists/* && \
+    groupadd --gid 1000 appuser && \
     useradd --uid 1000 --gid appuser --shell /bin/bash --create-home appuser
 
 WORKDIR /app
