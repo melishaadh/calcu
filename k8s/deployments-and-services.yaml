@@ -1,3 +1,21 @@
+# deployments-and-services.yaml
+#
+# Each "Deployment" below tells Kubernetes: "keep this many copies (replicas)
+# of this container running, and automatically replace any that crash."
+# Each matching "Service" gives that group of pods a stable network name
+# (e.g. "history-service") so other pods can reliably find them.
+#
+# NOTE ON PLACEHOLDERS: "DOCKERHUB_USERNAME_PLACEHOLDER" and
+# "IMAGE_TAG_PLACEHOLDER" below get automatically replaced by the Jenkinsfile
+# ("Update Image Tags" stage) right before every deployment. If you're
+# applying this file manually (without Jenkins), replace them yourself first:
+#   sed -i 's|DOCKERHUB_USERNAME_PLACEHOLDER|your-dockerhub-username|g; s|IMAGE_TAG_PLACEHOLDER|latest|g' k8s/deployments-and-services.yaml
+#
+# NOTE ON THE GATEWAY: Docker Compose uses our own "nginx" container as a
+# gateway (see nginx/nginx.conf). In Kubernetes, the standard Nginx Ingress
+# Controller (see ingress.yaml) plays that exact same role, so there is no
+# separate "gateway" Deployment here.
+
 # -------------------- history-service --------------------
 apiVersion: apps/v1
 kind: Deployment
@@ -18,7 +36,8 @@ spec:
     spec:
       containers:
         - name: history-service
-          image: REPLACE_ECR_REGISTRY/melishaadh/calcu-history-service:latest
+          image: history-service:latest
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 5003
           envFrom:
@@ -81,7 +100,8 @@ spec:
     spec:
       containers:
         - name: scientific-engine
-          image: REPLACE_ECR_REGISTRY/melishaadh/calcu-scientific-engine:latest
+          image: scientific-engine:latest
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 5001
           env:
@@ -144,7 +164,8 @@ spec:
     spec:
       containers:
         - name: financial-engine
-          image: REPLACE_ECR_REGISTRY/melishaadh/calcu-financial-engine:latest
+          image: financial-engine:latest
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 5002
           env:
@@ -207,7 +228,8 @@ spec:
     spec:
       containers:
         - name: frontend
-          image: REPLACE_ECR_REGISTRY/melishaadh/calcu-frontend:latest
+          image: frontend:latest
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 80
           resources:

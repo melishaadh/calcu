@@ -1,24 +1,30 @@
+# ingress.yaml
+#
+# An "Ingress" is the standard Kubernetes way to expose HTTP routes from
+# outside the cluster to Services running inside it. This replaces the need
+# for our own custom Nginx gateway container (used in Docker Compose) - the
+# Nginx Ingress Controller does that exact same routing job for us here.
+#
+# IMPORTANT: This requires an Nginx Ingress Controller to already be installed
+# in your cluster (not a cloud load balancer - this project runs entirely on
+# local/on-prem clusters like Minikube, K3s, or MicroK8s). See README.md for
+# the one-line command to enable it.
+#
+# We do NOT rewrite the URL paths - each request keeps its original path
+# (e.g. "/api/scientific") exactly as-is when it reaches the backend Service,
+# because our Flask apps expect to receive that exact path.
+
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: calcu-ingress
   namespace: calcu
-  annotations:
-    kubernetes.io/ingress.class: alb
-    alb.ingress.kubernetes.io/scheme: internet-facing
-    alb.ingress.kubernetes.io/target-type: ip
-    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS": 443}]'
-    alb.ingress.kubernetes.io/healthcheck-path: /health
-    alb.ingress.kubernetes.io/healthcheck-interval-seconds: "15"
-    alb.ingress.kubernetes.io/healthy-threshold-count: "2"
-    alb.ingress.kubernetes.io/unhealthy-threshold-count: "3"
-    alb.ingress.kubernetes.io/success-codes: "200"
-    alb.ingress.kubernetes.io/backend-protocol: HTTP
 spec:
-  ingressClassName: alb
+  ingressClassName: nginx        # Tells Kubernetes to use the Nginx Ingress Controller
   rules:
     - http:
         paths:
+          # Requests starting with /api/scientific -> scientific-engine Service
           - path: /api/scientific
             pathType: Prefix
             backend:
@@ -26,6 +32,8 @@ spec:
                 name: scientific-engine
                 port:
                   number: 5001
+
+          # Requests starting with /api/financial -> financial-engine Service
           - path: /api/financial
             pathType: Prefix
             backend:
@@ -33,6 +41,8 @@ spec:
                 name: financial-engine
                 port:
                   number: 5002
+
+          # Requests starting with /api/history -> history-service Service
           - path: /api/history
             pathType: Prefix
             backend:
@@ -40,6 +50,11 @@ spec:
                 name: history-service
                 port:
                   number: 5003
+
+          # Everything else ("/", plus style.css and app.js) -> frontend Service.
+          # This rule MUST be listed last - the Ingress Controller matches paths
+          # in order, and "/" would otherwise catch every request before the
+          # more specific rules above got a chance to match.
           - path: /
             pathType: Prefix
             backend:
