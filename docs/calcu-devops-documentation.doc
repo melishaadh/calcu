@@ -1,0 +1,885 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>calcu â€” DevOps Documentation</title>
+<style>
+  :root {
+    --ink: #1a1a1a;
+    --muted: #555;
+    --rule: #d0d0d0;
+    --accent: #0b5c9e;
+    --code-bg: #f4f5f7;
+    --code-ink: #1c2b3a;
+    --th-bg: #eef2f6;
+  }
+
+  * { box-sizing: border-box; }
+
+  html { font-size: 11pt; }
+
+  body {
+    margin: 0;
+    color: var(--ink);
+    background: #fff;
+    font-family: "Calibri", "Segoe UI", Arial, sans-serif;
+    line-height: 1.5;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* On screen: give it a page-like frame. Print rules override below. */
+  .page-wrap {
+    max-width: 8.5in;
+    margin: 0 auto;
+    padding: 0.9in 0.9in 1in;
+  }
+
+  h1, h2, h3, h4 {
+    font-family: "Cambria", "Georgia", serif;
+    line-height: 1.25;
+    color: var(--ink);
+    margin: 1.6em 0 0.5em;
+    page-break-after: avoid;
+  }
+  h1 { font-size: 21pt; border-bottom: 2px solid var(--accent); padding-bottom: 0.15em; }
+  h2 { font-size: 16pt; border-bottom: 1px solid var(--rule); padding-bottom: 0.1em; margin-top: 1.9em; }
+  h3 { font-size: 12.5pt; color: var(--accent); }
+  h4 { font-size: 11pt; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); }
+
+  p { margin: 0.5em 0; }
+
+  a { color: var(--accent); text-decoration: none; }
+
+  ul, ol { margin: 0.5em 0; padding-left: 1.5em; }
+  li { margin: 0.25em 0; }
+
+  code {
+    font-family: "Consolas", "SFMono-Regular", "Courier New", monospace;
+    font-size: 0.9em;
+    background: var(--code-bg);
+    color: var(--code-ink);
+    padding: 0.1em 0.35em;
+    border-radius: 3px;
+  }
+
+  pre {
+    font-family: "Consolas", "SFMono-Regular", "Courier New", monospace;
+    font-size: 9pt;
+    line-height: 1.45;
+    background: var(--code-bg);
+    color: var(--code-ink);
+    border: 1px solid var(--rule);
+    border-left: 3px solid var(--accent);
+    border-radius: 4px;
+    padding: 0.7em 0.9em;
+    overflow-x: auto;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    page-break-inside: avoid;
+  }
+  pre code { background: none; padding: 0; font-size: inherit; color: inherit; }
+
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 0.9em 0;
+    font-size: 9.5pt;
+    page-break-inside: avoid;
+  }
+  th, td {
+    border: 1px solid var(--rule);
+    padding: 0.4em 0.6em;
+    text-align: left;
+    vertical-align: top;
+  }
+  th { background: var(--th-bg); font-weight: 600; }
+
+  blockquote {
+    margin: 0.8em 0;
+    padding: 0.4em 0.9em;
+    border-left: 3px solid var(--accent);
+    background: #f7fafd;
+    color: var(--muted);
+  }
+
+  hr { border: none; border-top: 1px solid var(--rule); margin: 1.6em 0; }
+
+  .cover {
+    text-align: center;
+    padding: 2.2in 0 0;
+    page-break-after: always;
+  }
+  .cover .kicker { font-size: 11pt; letter-spacing: 0.25em; text-transform: uppercase; color: var(--muted); }
+  .cover h1 { font-size: 30pt; border: none; margin: 0.25em 0; }
+  .cover .sub { font-size: 13pt; color: var(--muted); margin-top: 0.4em; }
+  .cover .meta { margin-top: 2.4in; font-size: 10pt; color: var(--muted); }
+
+  .toc { page-break-after: always; }
+  .toc ol { list-style: none; padding-left: 0; }
+  .toc > ol > li { margin: 0.5em 0; font-weight: 600; }
+  .toc ol ol { padding-left: 1.4em; font-weight: 400; margin-top: 0.2em; }
+
+  .part-title {
+    page-break-before: always;
+    background: var(--accent);
+    color: #fff;
+    padding: 0.5em 0.7em;
+    border: none;
+    border-radius: 4px;
+  }
+
+  .legend { font-size: 9.5pt; color: var(--muted); }
+
+  @media print {
+    html { font-size: 10.5pt; }
+    .page-wrap { max-width: none; margin: 0; padding: 0; }
+    a { color: var(--ink); }
+    @page {
+      size: A4;
+      margin: 18mm 16mm;
+    }
+    h2 { margin-top: 0; }
+    .no-print { display: none; }
+  }
+
+  .print-hint {
+    background: #fff8e1;
+    border: 1px solid #f0d98c;
+    border-radius: 4px;
+    padding: 0.7em 1em;
+    font-size: 9.5pt;
+    margin-bottom: 1.5em;
+  }
+</style>
+<!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View></w:WordDocument></xml><![endif]-->
+<style>@page WordSection1 { size: 21cm 29.7cm; margin: 2cm; } div.WordSection1 { page: WordSection1; }</style>
+</head>
+<body>
+<div class="page-wrap WordSection1">
+
+  <!-- ==================== COVER ==================== -->
+  <div class="cover">
+    <div class="kicker">Project &amp; Operations Documentation</div>
+    <h1>calcu</h1>
+    <div class="sub">Distributed Scientific &amp; Financial Calculator<br/>Microservices Â· Docker Â· NGINX Â· CI/CD Â· AWS EC2 Â· Kubernetes</div>
+    <div class="meta">
+      Two guides in one document:<br/>
+      Part I â€” Complete Project &amp; DevOps Explanation (beginner-friendly)<br/>
+      Part II â€” Manual DevOps Runbook (â€œWhat You Should Doâ€)
+    </div>
+  </div>
+
+  <!-- ==================== TOC ==================== -->
+  <nav class="toc">
+    <h1>Contents</h1>
+    <ol>
+      <li>Part I â€” Complete Project &amp; DevOps Explanation
+        <ol>
+          <li>1. What the application actually is</li>
+          <li>2. The folder map</li>
+          <li>3. Containers &amp; Dockerfiles</li>
+          <li>4. NGINX â€” the reverse proxy / gateway</li>
+          <li>5. The CI/CD pipeline</li>
+          <li>6. Docker Compose â€” one file, the whole stack</li>
+          <li>7. AWS EC2 deployment â€” how the pieces fit</li>
+          <li>8. Kubernetes â€” the same app, orchestrated</li>
+          <li>9. Correctness fixes made during cleanup</li>
+        </ol>
+      </li>
+      <li>Part II â€” Manual DevOps Runbook
+        <ol>
+          <li>A. Things only a human can do (AWS, accounts, IAM)</li>
+          <li>B. Run it locally from scratch</li>
+          <li>C. Deploy on AWS EC2 from scratch</li>
+          <li>D. Secrets &amp; environment variables</li>
+          <li>E. Day-2 operations</li>
+          <li>F. Teardown</li>
+          <li>Appendix â€” one-page cheat sheet</li>
+        </ol>
+      </li>
+    </ol>
+  </nav>
+
+  <!-- ==================== PART I ==================== -->
+  <h1 class="part-title">Part I â€” Complete Project &amp; DevOps Explanation</h1>
+  <p>A plain-English tour of how this project is built and shipped. No prior DevOps experience assumed.</p>
+
+  <h2>1. What the application actually is</h2>
+  <p><code>calcu</code> is a calculator deliberately split into <strong>several small programs that talk to each other over the network</strong> instead of one big program. Each small program is a <strong>microservice</strong>.</p>
+
+  <table>
+    <thead><tr><th>Microservice</th><th>Language</th><th>What it does</th><th>Talks to</th></tr></thead>
+    <tbody>
+      <tr><td><strong>frontend</strong></td><td>HTML/CSS/JS</td><td>The web page you see â€” buttons and results.</td><td>The browser calls the other services <em>through NGINX</em>.</td></tr>
+      <tr><td><strong>scientific-engine</strong></td><td>Python (Flask)</td><td><code>sin</code>, <code>cos</code>, <code>log</code>, <code>sqrt</code>, <code>factorial</code>, â€¦</td><td>Calls history-service to log each calculation.</td></tr>
+      <tr><td><strong>financial-engine</strong></td><td>Python (Flask)</td><td>Simple interest, compound interest, EMI.</td><td>Calls history-service to log each calculation.</td></tr>
+      <tr><td><strong>history-service</strong></td><td>Python (Flask + SQLAlchemy)</td><td>Reads/writes the list of past calculations.</td><td>Reads/writes <strong>PostgreSQL</strong>.</td></tr>
+      <tr><td><strong>PostgreSQL</strong></td><td>â€”</td><td>The database. Stores history rows on disk.</td><td>Only history-service.</td></tr>
+      <tr><td><strong>nginx</strong></td><td>â€”</td><td>The â€œfront doorâ€. Decides which service each request goes to.</td><td>All of the above.</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Why split it up?</h3>
+  <ul>
+    <li><strong>Independent scaling</strong> â€” trig math is CPU-heavy; run 8 copies of scientific-engine and only 1 database.</li>
+    <li><strong>Independent deploys</strong> â€” fix a financial formula without touching anything else.</li>
+    <li><strong>Clear boundaries</strong> â€” only history-service knows how the database works.</li>
+    <li><strong>It is a teaching project</strong> â€” the smallest realistic setup that exercises every common DevOps tool.</li>
+  </ul>
+
+  <h3>How a single click flows through the system</h3>
+<pre>You click "Calculate" (sqrt of 16)
+  |
+  v
+Browser sends:  POST /api/scientific   {"operation":"sqrt","value":16}
+  |
+  v
+NGINX sees the path starts with /api/scientific  ->  forwards to scientific-engine:5001
+  |
+  v
+scientific-engine computes 4.0
+  |           \--&gt; fires POST /api/history {"expression":"sqrt(16.0)","result":4.0,...}
+  |                       |
+  |                       v
+  |                 history-service  ->  INSERT INTO calculation_history ...  ->  PostgreSQL
+  |
+  v
+scientific-engine replies  {"operation":"sqrt","value":16.0,"result":4.0}
+  |
+  v
+NGINX passes it straight back to the browser -> "sqrt(16) = 4.0"</pre>
+  <p>Every few seconds the frontend also calls <code>GET /api/history</code> so the â€œLive Calculation Historyâ€ panel updates even when <em>someone else</em> did the maths.</p>
+
+  <h2>2. The folder map</h2>
+<pre>calcu/
+|-- frontend/                  The web UI.
+|   |-- index.html             Page structure.
+|   |-- style.css              Looks.
+|   |-- app.js                 Behaviour - the fetch() calls to /api/*.
+|   \-- Dockerfile             How to package it into a container.
+|
+|-- services/                  The three Python microservices. Same shape each:
+|   |-- &lt;service&gt;/app.py           The Flask application (routes + logic).
+|   |-- &lt;service&gt;/wsgi.py          Entry point Gunicorn imports in production.
+|   |-- &lt;service&gt;/requirements.txt Python libraries to install.
+|   |-- &lt;service&gt;/test_app.py      Unit tests (pytest).
+|   |-- &lt;service&gt;/Dockerfile       How to package it.
+|   \-- &lt;service&gt;/.dockerignore    Files to keep OUT of the image.
+|
+|-- db/init.sql               Creates the history table when Postgres first starts.
+|-- nginx/
+|   |-- nginx.conf            The routing rules (which path -&gt; which service).
+|   \-- Dockerfile            Packages nginx.conf into the calcu-nginx image.
+|
+|-- deploy/                   Operator tooling for servers:
+|   |-- ec2-provision.sh      Installs Docker on a fresh EC2 box (run once).
+|   |-- deploy.sh             Builds + starts/updates the stack.
+|   \-- calcu.service         systemd unit so the stack starts on boot.
+|
+|-- docker-compose.yml        Describes all 6 containers + how they connect.
+|-- docker-compose.override.yml  Local-dev-only extras (auto-loaded).
+|-- docker-compose.prod.yml   A thin overlay with EC2-only changes.
+|-- .env.example              Template for secrets/config -&gt; copy to .env.
+|
+|-- .github/workflows/ci.yml  GitHub Actions: test, build, scan, push.
+|-- Jenkinsfile              Jenkins: roll the new images out to Kubernetes.
+\-- k8s/                     Kubernetes manifests (the alternative to Compose).</pre>
+
+  <h2>3. Containers &amp; Dockerfiles</h2>
+  <h3>The idea</h3>
+  <p>A <strong>container</strong> is your program plus <em>everything it needs to run</em> (the right Python version, libraries, OS bits) sealed into one bundle called an <strong>image</strong>. â€œWorks on my machineâ€ stops being a problem because the machine comes <em>with</em> the program.</p>
+  <ul>
+    <li><strong>Image</strong> = the frozen bundle (a template). Built once.</li>
+    <li><strong>Container</strong> = a running copy of an image. You can start many from one image.</li>
+  </ul>
+
+  <h3>A Dockerfile is the recipe for an image</h3>
+  <p><code>services/scientific-engine/Dockerfile</code>, annotated:</p>
+<pre># ---- Build stage: install dependencies in a throwaway layer ----
+FROM python:3.11-slim AS builder          # start from a small Python 3.11 OS
+WORKDIR /app                              # work in /app inside the image
+RUN python -m venv /opt/venv              # make a clean virtual environment
+ENV PATH="/opt/venv/bin:$PATH"
+COPY requirements.txt .                   # copy ONLY the deps list first...
+RUN pip install --no-cache-dir -r requirements.txt   # ...so this layer is cached
+                                                     #    unless deps change
+
+# ---- Runtime stage: copy just what's needed to RUN ----
+FROM python:3.11-slim AS runtime
+RUN apt-get update &amp;&amp; apt-get upgrade -y  # patch OS security updates
+ &amp;&amp; useradd --uid 1000 appuser            # create a non-root user
+WORKDIR /app
+COPY --from=builder /opt/venv /opt/venv   # bring the installed libraries over
+COPY app.py wsgi.py ./                    # bring the code
+USER appuser                              # run as non-root (safer)
+EXPOSE 5001                               # documents the port it listens on
+HEALTHCHECK ... CMD curl .../health       # Docker keeps checking it's alive
+CMD ["gunicorn", "--bind", "0.0.0.0:5001", "--workers", "2", "wsgi:app"]</pre>
+
+  <table>
+    <thead><tr><th>Technique</th><th>Why</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Multi-stage build</strong> (<code>builder</code> â†’ <code>runtime</code>)</td><td>Compilers and build tools stay in the builder; the final image is small and has less to attack.</td></tr>
+      <tr><td><strong>Copy <code>requirements.txt</code> before the code</strong></td><td>Docker caches layers. Code changes far more often than dependencies, so most rebuilds skip re-installing everything.</td></tr>
+      <tr><td><strong><code>USER appuser</code> (non-root)</strong></td><td>If someone breaks into the container, they are not root.</td></tr>
+      <tr><td><strong><code>apt-get upgrade</code> in the runtime stage</strong></td><td>Picks up OS security patches released after the base image was published.</td></tr>
+      <tr><td><strong><code>HEALTHCHECK</code></strong></td><td>Docker/Kubernetes can tell a <em>hung</em> container from a <em>healthy</em> one and restart it.</td></tr>
+      <tr><td><strong><code>.dockerignore</code></strong></td><td>Keeps <code>test_app.py</code>, <code>__pycache__</code>, <code>.env</code> out of the image â€” smaller and no secrets.</td></tr>
+      <tr><td><strong>Gunicorn, not <code>flask run</code></strong></td><td>Flaskâ€™s built-in server is single-threaded and â€œnot for productionâ€. Gunicorn runs multiple worker processes.</td></tr>
+    </tbody>
+  </table>
+
+  <h3>The two NGINX images</h3>
+  <p><code>calcu-frontend</code> and <code>calcu-nginx</code> are <strong>both</strong> based on <code>nginx:alpine</code>, but:</p>
+  <ul>
+    <li><strong><code>calcu-frontend</code></strong> copies the HTML/CSS/JS into <code>/usr/share/nginx/html</code> and just serves static files.</li>
+    <li><strong><code>calcu-nginx</code></strong> copies <code>nginx/nginx.conf</code> and acts as the <strong>gateway</strong> â€” it does not serve files, it <em>forwards</em> requests to other services.</li>
+  </ul>
+
+  <h2>4. NGINX â€” the reverse proxy / gateway</h2>
+  <h3>What â€œreverse proxyâ€ means</h3>
+  <p>A normal proxy sits in front of <em>you</em> and fetches web pages on your behalf. A <strong>reverse proxy</strong> sits in front of <em>the servers</em> and decides which one answers each incoming request. The client only ever sees one address.</p>
+
+  <h3>Why calcu needs it</h3>
+  <p>The browser calls <code>/api/scientific</code>, <code>/api/financial</code>, <code>/api/history</code>, and also loads <code>/</code>, <code>/style.css</code>, <code>/app.js</code>. Those live on <strong>four different services</strong> on four ports. Without a gateway the frontend JavaScript would need every serviceâ€™s address, and browsers would block the cross-origin calls anyway. NGINX gives everything <strong>one origin</strong> (<code>http://localhost:8080</code>, or your EC2 address) and routes internally.</p>
+
+  <h3>The routing rules (<code>nginx/nginx.conf</code>), explained</h3>
+<pre>upstream scientific_upstream { server scientific-engine:5001; }   # a friendly name
+...
+
+server {
+    listen 80;                       # accept HTTP on port 80 inside the container
+    client_max_body_size 1m;         # reject bodies bigger than 1 MB
+
+    # If a backend is down or a path is wrong, return JSON - not NGINX's HTML
+    # error page - so the frontend's JSON.parse() never chokes.
+    error_page 404 = @json_404;
+    error_page 500 502 503 504 = @json_5xx;
+
+    location /api/scientific {                       # path starts with this -&gt;
+        proxy_pass http://scientific_upstream/api/scientific;   # send to that service
+        proxy_set_header X-Real-IP $remote_addr;     # tell the backend who called
+    }
+    location /api/financial { proxy_pass http://financial_upstream/api/financial; }
+    location /api/history   { proxy_pass http://history_upstream/api/history; }
+
+    location / {                                     # everything else -&gt;
+        proxy_pass http://frontend_upstream/;        # the static frontend
+    }
+}</pre>
+  <p><code>scientific-engine</code>, <code>financial-engine</code>, etc. are <strong>DNS names</strong> that Docker Compose (and Kubernetes) create automatically â€” every service can reach every other by its name on the private network.</p>
+
+  <h3>On Kubernetes</h3>
+  <p>Same job, two options: <code>k8s/gateway.yaml</code> runs the <em>identical</em> <code>calcu-nginx</code> image as a pod; <code>k8s/ingress.yaml</code> hands the routing to the clusterâ€™s shared â€œNGINX Ingress Controllerâ€ instead.</p>
+
+  <h2>5. The CI/CD pipeline</h2>
+  <p><strong>CI (Continuous Integration)</strong> = every code change is automatically tested and built. <strong>CD (Continuous Deployment)</strong> = those built artifacts are automatically rolled out. This project splits them across two tools on purpose (both are common in industry).</p>
+
+<pre> +----------------------- GitHub Actions (CI) -----------------------+
+ |  git push  ->  TEST  ->  BUILD images  ->  SCAN (Trivy)  ->  PUSH |
+ |              (pytest)   (docker build)   (vuln check)    Docker Hub|
+ +--------------------------------+--------------------------------- -+
+                                  |  images now exist at
+                                  |  docker.io/&lt;you&gt;/calcu-&lt;service&gt;:&lt;git-sha&gt;
+                                  v
+ +-------------------------- Jenkins (CD) -------------------------- -+
+ |  trigger -> connect to Kubernetes -> kubectl set image (rolling)  |
+ |          -> wait for healthy rollout -> Slack OK  (or rollback)   |
+ +---------------------------------------------------------------- --+</pre>
+
+  <h3>CI stages â€” <code>.github/workflows/ci.yml</code></h3>
+  <table>
+    <thead><tr><th>Stage</th><th>Job</th><th>What happens</th><th>Fails the build ifâ€¦</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Test</strong></td><td><code>test</code></td><td>3 parallel runners (one per Python service), install deps, run <code>pytest -v</code>.</td><td>any test fails</td></tr>
+      <tr><td><strong>Build</strong></td><td><code>build-scan-push</code></td><td><code>docker build</code> for all 5 images, tagged with the <strong>git commit SHA</strong> and <code>latest</code>.</td><td>a Dockerfile is broken</td></tr>
+      <tr><td><strong>Scan</strong></td><td>(same job)</td><td><strong>Trivy</strong> checks each image for CRITICAL/HIGH CVEs. <strong>Non-blocking</strong> (<code>--exit-code 0</code>) â€” reports but does not stop the pipeline.</td><td>never (flip to <code>--exit-code 1</code> for a hard gate)</td></tr>
+      <tr><td><strong>Push</strong></td><td>(same job)</td><td><code>docker push</code> both tags to Docker Hub. <strong>Only on a push to <code>main</code></strong>, never on a PR.</td><td>Docker Hub rejects the push</td></tr>
+      <tr><td><strong>Notify</strong></td><td><code>notify</code></td><td>One Slack message: SUCCESS / FAILURE with repo, branch, commit, author. Runs even if earlier stages failed.</td><td>never</td></tr>
+    </tbody>
+  </table>
+  <p><strong>Why tag with the git SHA?</strong> So Jenkins can later deploy <em>one exact, known-good build</em> â€” not a moving <code>latest</code>.</p>
+  <p><strong>About Trivy and the pinned version.</strong> Trivy is a free vulnerability scanner. In March 2026 the <code>aquasecurity/trivy-action</code> Marketplace action <em>and</em> some Trivy releases were briefly compromised in a supply-chain attack. This workflow therefore runs Trivy from its <strong>official container image at a fixed pre-incident tag</strong> (<code>aquasec/trivy:0.55.2</code>) rather than the Marketplace action â€” a small, deliberate example of supply-chain hardening.</p>
+
+  <h3>CD stages â€” <code>Jenkinsfile</code></h3>
+  <table>
+    <thead><tr><th>Stage</th><th>What happens</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Checkout Code</strong></td><td>Pull the repo; work out which image tag to deploy (build parameter, or the triggering commit SHA, or <code>latest</code>).</td></tr>
+      <tr><td><strong>Notify: Start</strong></td><td>Post â€œDeployment STARTEDâ€ to Slack.</td></tr>
+      <tr><td><strong>Connect to Kubernetes</strong></td><td>Load the kubeconfig from Jenkinsâ€™ credential store; <code>kubectl get nodes</code> to prove the connection.</td></tr>
+      <tr><td><strong>Deploy: Rolling Update</strong></td><td>For each service: <code>kubectl set image deployment/&lt;svc&gt; &lt;svc&gt;=&lt;you&gt;/calcu-&lt;svc&gt;:&lt;tag&gt;</code>. Kubernetes starts new pods and retires old ones <strong>one at a time</strong> â€” no downtime.</td></tr>
+      <tr><td><strong>Verify Rollout Health</strong></td><td><code>kubectl rollout status</code> waits until every new pod passes its readiness probe; errors if one does not within 180s.</td></tr>
+      <tr><td><strong>post { success }</strong></td><td>Slack success.</td></tr>
+      <tr><td><strong>post { failure }</strong></td><td>Slack failure, then <code>kubectl rollout undo</code> on every deployment (automatic rollback), then Slack â€œrollback completedâ€.</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Why secrets are never in these files</h3>
+  <p><code>ci.yml</code> and <code>Jenkinsfile</code> live in Git. Anyone who can read the repo could read a hard-coded password or webhook URL. Both files only <em>reference</em> secrets by name (<code>${{ secrets.DOCKERHUB_TOKEN }}</code>, <code>credentials('slack-webhook-url')</code>); you paste the real values into GitHubâ€™s and Jenkinsâ€™ own encrypted stores (see Part II Â§D).</p>
+
+  <h2>6. Docker Compose â€” one file, the whole stack</h2>
+  <p><code>docker-compose.yml</code> is a single description of all six containers: which image each uses, what environment variables it gets, which depends on which, and what network they share.</p>
+<pre>name: calcu                       # prefixes the project's resources
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-calcu_pass}   # from .env, default calcu_pass
+    volumes:
+      - calcu-postgres-data:/var/lib/postgresql/data        # data survives restarts
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro   # runs on first start
+    healthcheck:                                            # "is Postgres accepting connections?"
+      test: ["CMD-SHELL", "pg_isready -U ... -d ..."]
+
+  history-service:
+    build: { context: ./services/history-service }         # build from that Dockerfile
+    image: calcu-history-service:${IMAGE_TAG:-latest}       # ...and name the result this
+    environment:
+      DATABASE_URL: postgresql+psycopg2://.../calcu_db      # how to reach Postgres
+    depends_on:
+      postgres: { condition: service_healthy }              # wait for the healthcheck
+
+  nginx:
+    build: { context: ./nginx }
+    ports:
+      - "${HTTP_PORT:-8080}:80"      # host:container - the ONLY port exposed to you
+
+networks:
+  calcu-net: { driver: bridge }     # private network; service names resolve on it
+
+volumes:
+  calcu-postgres-data:              # named volume = the database's disk</pre>
+
+  <table>
+    <thead><tr><th>Term</th><th>Meaning</th></tr></thead>
+    <tbody>
+      <tr><td><strong>service</strong></td><td>One container definition.</td></tr>
+      <tr><td><strong><code>build</code> vs <code>image</code></strong></td><td><code>build</code> says <em>how</em> to make the image; <code>image</code> <em>names</em> it. Both = <code>docker compose build</code> produces a predictably-named image.</td></tr>
+      <tr><td><strong><code>depends_on</code> + <code>condition: service_healthy</code></strong></td><td>Start ordering. history-service will not start until Postgres passes its healthcheck.</td></tr>
+      <tr><td><strong>volume</strong></td><td>Disk storage that outlives the container. Without it, <code>docker compose down</code> would delete all history.</td></tr>
+      <tr><td><strong>network</strong></td><td>The private LAN. <code>history-service</code> can reach <code>postgres</code> because they share <code>calcu-net</code>.</td></tr>
+      <tr><td><strong><code>${VAR:-default}</code></strong></td><td>Read <code>VAR</code> from <code>.env</code>; use <code>default</code> if unset. This makes the <em>same file</em> work locally and on EC2.</td></tr>
+      <tr><td><strong><code>expose</code> vs <code>ports</code></strong></td><td><code>expose</code> = reachable by other containers only. <code>ports</code> = published to the host. Only NGINX publishes a port.</td></tr>
+    </tbody>
+  </table>
+
+  <h3>The overlay files</h3>
+  <ul>
+    <li><strong><code>docker-compose.override.yml</code></strong> â€” auto-loaded on a plain <code>docker compose up</code> (local dev only). Publishes Postgres on <code>127.0.0.1:5432</code> for your <code>psql</code>/GUI. The EC2 path uses explicit <code>-f</code> flags, so it never picks this up.</li>
+    <li><strong><code>docker-compose.prod.yml</code></strong> â€” EC2 changes: <code>restart: always</code> (survive reboot) and per-container log rotation (3 Ã— 10&nbsp;MB) so a small instance disk never fills. <code>HTTP_PORT=80</code> in <code>.env</code> makes the site answer on the normal web port.</li>
+  </ul>
+
+  <h2>7. AWS EC2 deployment â€” how the pieces fit</h2>
+<pre>        Internet
+           |  HTTP :80
+           v
+   +----------------------------------------------+
+   |  AWS EC2 instance (Ubuntu)                    |
+   |                                              |
+   |  Security Group  -- allows :22 (you), :80    |
+   |                                              |
+   |  Docker Engine                               |
+   |   \- docker compose project "calcu"          |
+   |        calcu-nginx  :80 -+- calcu-frontend   |
+   |                          +- calcu-scientific |
+   |                          +- calcu-financial  |
+   |                          \- calcu-history - calcu-postgres (private, volume-backed)
+   |                                              |
+   |  systemd unit "calcu.service" -> starts it on boot
+   +----------------------------------------------+</pre>
+  <p>There is <strong>no AWS-specific code</strong> in the app. EC2 is just â€œa Linux box with a public IPâ€. The only AWS things a human configures are the instance, its <strong>security group</strong> (a cloud firewall â€” you must open port 80), and optionally an <strong>IAM role</strong> if you later want the instance to pull private images from ECR or read secrets from Parameter Store.</p>
+  <table>
+    <thead><tr><th>File</th><th>Run itâ€¦</th><th>Purpose</th></tr></thead>
+    <tbody>
+      <tr><td><code>deploy/ec2-provision.sh</code></td><td>once, on a fresh instance</td><td>Installs Docker + Compose from Dockerâ€™s official apt repo, adds you to the <code>docker</code> group, turns on the host firewall (<code>ufw</code>).</td></tr>
+      <tr><td><code>deploy/deploy.sh</code></td><td>every deploy</td><td><code>git pull</code> â†’ <code>docker compose build</code> â†’ <code>up -d</code>. <code>ENV=prod</code> adds the overlay. Idempotent.</td></tr>
+      <tr><td><code>deploy/calcu.service</code></td><td>install once</td><td>systemd unit; <code>systemctl enable</code> it so the stack starts automatically after a reboot.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>8. Kubernetes â€” the same app, orchestrated</h2>
+  <p>Compose runs containers on <strong>one</strong> machine. Kubernetes runs them across a <strong>cluster</strong> and adds self-healing, autoscaling, and rolling updates as first-class features. This repo targets <strong>local</strong> clusters (Minikube / K3s / MicroK8s) â€” no cloud Kubernetes.</p>
+  <table>
+    <thead><tr><th>Manifest</th><th>Kubernetes objects</th><th>Compose equivalent</th></tr></thead>
+    <tbody>
+      <tr><td><code>postgres-pv-pvc-secret.yaml</code></td><td><code>Namespace</code>, <code>Secret</code>, <code>PersistentVolumeClaim</code>, <code>StatefulSet</code>, headless <code>Service</code></td><td>the <code>postgres</code> service + its volume + env</td></tr>
+      <tr><td><code>deployments-and-services.yaml</code></td><td>4 Ã— (<code>Deployment</code> + <code>Service</code>)</td><td>the 4 app services</td></tr>
+      <tr><td><code>gateway.yaml</code></td><td><code>Deployment</code> + NodePort <code>Service</code> running <code>calcu-nginx</code></td><td>the <code>nginx</code> service + its published port</td></tr>
+      <tr><td><code>ingress.yaml</code></td><td><code>Ingress</code></td><td>an alternative to <code>gateway.yaml</code>, using the clusterâ€™s shared ingress controller</td></tr>
+      <tr><td><code>hpa.yaml</code></td><td>2 Ã— <code>HorizontalPodAutoscaler</code></td><td><em>(no equivalent â€” Compose cannot autoscale)</em></td></tr>
+    </tbody>
+  </table>
+  <table>
+    <thead><tr><th>Concept</th><th>Meaning</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Deployment</strong></td><td>â€œKeep N copies of this pod running; replace any that die; roll updates out gradually.â€</td></tr>
+      <tr><td><strong>Service</strong></td><td>A stable internal name + IP for a changing set of pods.</td></tr>
+      <tr><td><strong>StatefulSet</strong></td><td>Like a Deployment but for things with identity and storage (databases). Postgres uses one.</td></tr>
+      <tr><td><strong>Secret</strong></td><td>Base64-wrapped config (âš ï¸ <em>not</em> encrypted at rest by default).</td></tr>
+      <tr><td><strong>PersistentVolumeClaim</strong></td><td>â€œI need 5&nbsp;GB of diskâ€; the cluster provides it.</td></tr>
+      <tr><td><strong>HorizontalPodAutoscaler</strong></td><td>Watches CPU/memory and changes the replica count automatically (needs <code>metrics-server</code>).</td></tr>
+      <tr><td><strong>readiness / liveness / startup probe</strong></td><td>â€œCan it take traffic yet?â€ / â€œIs it wedged and needing a restart?â€ / â€œGive it time to boot before the other two apply.â€</td></tr>
+    </tbody>
+  </table>
+
+  <h2>9. Correctness fixes made during cleanup</h2>
+  <table>
+    <thead><tr><th>Area</th><th>Was</th><th>Now</th></tr></thead>
+    <tbody>
+      <tr><td><strong>history-service schema</strong></td><td>Table only created by <code>db/init.sql</code>, so on Kubernetes (no init hook) the first write failed with <em>relation â€œcalculation_historyâ€ does not exist</em>.</td><td><code>init_db()</code> runs SQLAlchemy <code>create_all()</code> on startup, with a bounded retry while Postgres wakes up. Works everywhere.</td></tr>
+      <tr><td><strong>DB connection pool</strong></td><td>Fixed <code>pool_size=5, max_overflow=10</code> per worker â€” could exhaust Postgresâ€™ 100-connection limit across replicas.</td><td>Configurable via <code>DB_POOL_SIZE</code> / <code>DB_MAX_OVERFLOW</code>; smaller documented defaults; <code>pool_recycle</code> added.</td></tr>
+      <tr><td><strong>scientific-engine overflow</strong></td><td><code>math.exp(1000)</code> / huge <code>pow</code> raised <code>OverflowError</code> â†’ generic HTTP 500.</td><td>Caught â†’ HTTP 400 with a clear message. <code>factorial</code> input validated and capped at 170.</td></tr>
+      <tr><td><strong>CI / Trivy</strong></td><td>Used <code>aquasecurity/trivy-action@v0.36.0</code> (a Marketplace action from a family compromised in March 2026). Slack payload built by string-interpolating the commit message â†’ a <code>"</code> broke the JSON.</td><td>Trivy runs from the pinned official image <code>aquasec/trivy:0.55.2</code>; Slack payload built with <code>jq</code> (injection-safe); workflow given least-privilege <code>permissions:</code> and <code>concurrency:</code>.</td></tr>
+      <tr><td><strong>Naming</strong></td><td>Mixed: <code>history-service:latest</code> in k8s, <code>calcu-history-service</code> in CI. <code>gateway.yaml</code> carried a byte-for-byte copy of <code>nginx.conf</code> in a ConfigMap.</td><td>Everything is <code>calcu-&lt;service&gt;</code>. <code>gateway.yaml</code> runs the real <code>calcu-nginx</code> image â€” one source of truth for routing.</td></tr>
+      <tr><td><strong>Compose exposure</strong></td><td>Postgres published on <code>0.0.0.0:5432</code>; credentials hard-coded.</td><td>Not published at all on a server (localhost-only in local dev); credentials from <code>.env</code>.</td></tr>
+      <tr><td><strong>Line endings</strong></td><td>No <code>.gitattributes</code> â€” a Windows checkout could ship CRLF shell scripts that fail on Linux.</td><td><code>.gitattributes</code> forces LF on scripts, Dockerfiles, YAML, the systemd unit.</td></tr>
+    </tbody>
+  </table>
+
+  <!-- ==================== PART II ==================== -->
+  <h1 class="part-title">Part II â€” Manual DevOps Runbook (â€œWhat You Should Doâ€)</h1>
+  <p>Every exact command and every by-hand step to build, test, run, and operate <code>calcu</code> â€” locally and on a fresh AWS EC2 instance.</p>
+  <p class="legend"><strong>Legend:</strong> &nbsp;âœ‹ = a human must do this by hand (web console / decision). &nbsp; ðŸ’» = run this command exactly.</p>
+
+  <h2>A. Things only a human can do</h2>
+  <p>These cannot be scripted from inside the repo. Do them once.</p>
+
+  <h3>A1. Accounts âœ‹</h3>
+  <table>
+    <thead><tr><th>Account</th><th>Needed for</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td><strong>AWS</strong></td><td>the EC2 instance</td><td>Free-tier is enough (<code>t3.micro</code> / <code>t2.micro</code>).</td></tr>
+      <tr><td><strong>Docker Hub</strong></td><td>CI pushing images</td><td>Create an <strong>access token</strong> (Account Settings â†’ Security). Never use your password.</td></tr>
+      <tr><td><strong>GitHub</strong></td><td>source + CI</td><td>The repo must be pushed here for GitHub Actions to run.</td></tr>
+      <tr><td><strong>Slack</strong> (optional)</td><td>pipeline notifications</td><td>Create an <strong>Incoming Webhook</strong> (api.slack.com â†’ Your Apps).</td></tr>
+      <tr><td><strong>Jenkins host</strong> (optional)</td><td>CD</td><td>Any machine that can reach your Kubernetes cluster and has Docker + <code>kubectl</code>.</td></tr>
+    </tbody>
+  </table>
+
+  <h3>A2. Create the EC2 instance âœ‹</h3>
+  <p>AWS Console â†’ <strong>EC2</strong> â†’ <strong>Launch instance</strong>:</p>
+  <table>
+    <thead><tr><th>Field</th><th>Value</th></tr></thead>
+    <tbody>
+      <tr><td>Name</td><td><code>calcu</code></td></tr>
+      <tr><td>AMI</td><td><strong>Ubuntu Server 24.04 LTS</strong> (x86_64)</td></tr>
+      <tr><td>Instance type</td><td><code>t3.small</code> (2&nbsp;GB RAM). <code>t3.micro</code> (1&nbsp;GB) works but is tight with Postgres.</td></tr>
+      <tr><td>Key pair</td><td>Create or pick one. <strong>Download the <code>.pem</code> file</strong> â€” you need it to SSH in.</td></tr>
+      <tr><td>Network</td><td>default VPC, <strong>Auto-assign public IP = Enable</strong></td></tr>
+      <tr><td>Firewall (security group)</td><td>create new, name it <code>calcu-sg</code> â€” rules in A3</td></tr>
+      <tr><td>Storage</td><td>20&nbsp;GiB gp3</td></tr>
+    </tbody>
+  </table>
+  <p>Launch. Note the <strong>Public IPv4 address</strong> once it is running.</p>
+
+  <h3>A3. Security group rules âœ‹</h3>
+  <p>Edit <code>calcu-sg</code> â†’ <strong>Inbound rules</strong>:</p>
+  <table>
+    <thead><tr><th>Type</th><th>Protocol</th><th>Port</th><th>Source</th><th>Why</th></tr></thead>
+    <tbody>
+      <tr><td>SSH</td><td>TCP</td><td>22</td><td><strong>My IP</strong></td><td>So you can log in. Never <code>0.0.0.0/0</code>.</td></tr>
+      <tr><td>HTTP</td><td>TCP</td><td>80</td><td><code>0.0.0.0/0</code> (and <code>::/0</code>)</td><td>So the public can reach the app.</td></tr>
+    </tbody>
+  </table>
+  <p>Do <strong>not</strong> open 5432 (Postgres), 5001â€“5003 (the engines), or 8080. Outbound: leave the default â€œall trafficâ€.</p>
+
+  <h3>A4. IAM â€” do you need a role? âœ‹</h3>
+  <p>For this project as written (images built <strong>on the instance</strong> from the Git checkout): <strong>no IAM role is required.</strong> Attach an instance role later <strong>only if</strong> you switch to:</p>
+  <table>
+    <thead><tr><th>You want toâ€¦</th><th>Attach a role allowingâ€¦</th></tr></thead>
+    <tbody>
+      <tr><td>Pull images from <strong>Amazon ECR</strong> instead of Docker Hub</td><td><code>AmazonEC2ContainerRegistryReadOnly</code></td></tr>
+      <tr><td>Read <code>POSTGRES_PASSWORD</code> from <strong>SSM Parameter Store</strong></td><td><code>ssm:GetParameter</code> on your parameter ARN</td></tr>
+      <tr><td>Ship logs to <strong>CloudWatch</strong></td><td><code>CloudWatchAgentServerPolicy</code></td></tr>
+    </tbody>
+  </table>
+  <p>Create via IAM â†’ Roles â†’ <em>Create role</em> â†’ <em>AWS service: EC2</em> â†’ attach policy â†’ then EC2 â†’ <em>Actions â†’ Security â†’ Modify IAM role</em>.</p>
+
+  <h3>A5. (Optional) DNS âœ‹</h3>
+  <p>Point an <code>A</code> record at the instanceâ€™s public IP if you have a domain. TLS/HTTPS is out of scope here â€” add it later with Caddy, or an AWS Application Load Balancer + ACM certificate in front of the instance.</p>
+
+  <h2>B. Run it locally from scratch</h2>
+  <p>Assumes Ubuntu/Debian or WSL2. macOS: use Docker Desktop and skip B1.</p>
+
+  <h3>B1. Install Docker Engine + Compose ðŸ’»</h3>
+<pre>sudo apt-get update
+sudo apt-get install -y ca-certificates curl git
+sudo install -m 0755 -d /etc/apt/keyrings
+sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+sudo chmod a+r /etc/apt/keyrings/docker.asc
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu $(. /etc/os-release &amp;&amp; echo "$VERSION_CODENAME") stable" | sudo tee /etc/apt/sources.list.d/docker.list &gt; /dev/null
+sudo apt-get update
+sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+sudo usermod -aG docker "$USER"
+newgrp docker      # or log out/in</pre>
+  <p>Verify:</p>
+<pre>docker --version
+docker compose version
+docker run --rm hello-world</pre>
+
+  <h3>B2. Get the code ðŸ’»</h3>
+<pre>git clone &lt;your-repo-url&gt; calcu
+cd calcu</pre>
+
+  <h3>B3. Configure ðŸ’»</h3>
+<pre>cp .env.example .env
+# Local defaults are fine. To use a different host port:
+#   sed -i 's/^HTTP_PORT=.*/HTTP_PORT=9090/' .env</pre>
+
+  <h3>B4. Build &amp; start ðŸ’»</h3>
+<pre>docker compose build
+docker compose up -d
+docker compose ps          # wait until every service is "running"/"healthy"</pre>
+
+  <h3>B5. Verify ðŸ’»</h3>
+<pre>curl -fsS -X POST http://localhost:8080/api/scientific \
+  -H 'Content-Type: application/json' -d '{"operation":"sqrt","value":16}'
+# {"operation":"sqrt","result":4.0,"value":16.0}
+
+curl -fsS -X POST http://localhost:8080/api/financial \
+  -H 'Content-Type: application/json' \
+  -d '{"operation":"emi","principal":100000,"annual_rate":10,"tenure_months":12}'
+
+curl -fsS http://localhost:8080/api/history
+
+docker compose exec scientific-engine  curl -fsS http://localhost:5001/health
+docker compose exec financial-engine   curl -fsS http://localhost:5002/health
+docker compose exec history-service    curl -fsS http://localhost:5003/health</pre>
+  <p>Open <strong>http://localhost:8080</strong> in a browser.</p>
+
+  <h3>B6. Logs / stop ðŸ’»</h3>
+<pre>docker compose logs -f                    # all services, follow
+docker compose logs -f history-service    # one service
+docker compose down                       # stop &amp; remove containers (keeps DB volume)
+docker compose down -v                     # ...and delete the database volume</pre>
+
+  <h3>B7. Run the unit tests ðŸ’»</h3>
+  <p>Needs Python 3.11+ (<code>sudo apt-get install -y python3 python3-pip python3-venv</code>).</p>
+<pre>cd calcu
+for svc in scientific-engine financial-engine history-service; do
+  echo "=== $svc ==="
+  ( cd "services/$svc" \
+    &amp;&amp; python3 -m venv .venv &amp;&amp; . .venv/bin/activate \
+    &amp;&amp; pip install -q -r requirements.txt pytest \
+    &amp;&amp; pytest -v \
+    &amp;&amp; deactivate )
+done</pre>
+  <p><code>history-service</code> tests use an in-memory SQLite database â€” no Postgres needed.</p>
+
+  <h2>C. Deploy on AWS EC2 from scratch</h2>
+  <p>Do section A first (instance + security group exist).</p>
+
+  <h3>C1. Connect to the instance ðŸ’»</h3>
+<pre>chmod 400 ~/Downloads/calcu-key.pem      # your .pem, once
+ssh -i ~/Downloads/calcu-key.pem ubuntu@&lt;EC2_PUBLIC_IP&gt;</pre>
+  <p>Everything below runs <strong>on the instance</strong>.</p>
+
+  <h3>C2. Provision the instance (once) ðŸ’»</h3>
+<pre>sudo apt-get update &amp;&amp; sudo apt-get install -y git
+sudo mkdir -p /opt/calcu &amp;&amp; sudo chown "$USER:$USER" /opt/calcu
+git clone &lt;your-repo-url&gt; /opt/calcu
+cd /opt/calcu
+chmod +x deploy/*.sh
+./deploy/ec2-provision.sh
+newgrp docker         # apply docker group now (or log out and back in)
+docker compose version</pre>
+  <blockquote>You now have <strong>two</strong> firewalls â€” the AWS security group <em>and</em> <code>ufw</code>. If you ever expose another port, open it in <strong>both</strong> (<code>sudo ufw allow &lt;port&gt;/tcp</code> and the security group). To rely on the security group alone: <code>sudo ufw disable</code>.</blockquote>
+
+  <h3>C3. Configure for production ðŸ’»</h3>
+<pre>cd /opt/calcu
+cp .env.example .env
+PW=$(openssl rand -base64 24)
+sed -i "s|^POSTGRES_PASSWORD=.*|POSTGRES_PASSWORD=${PW}|" .env
+sed -i "s|^HTTP_PORT=.*|HTTP_PORT=80|" .env
+grep -E '^(HTTP_PORT|POSTGRES_PASSWORD)=' .env</pre>
+
+  <h3>C4. Deploy ðŸ’»</h3>
+<pre>cd /opt/calcu
+ENV=prod ./deploy/deploy.sh</pre>
+  <p>This runs <code>docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build</code>. First run takes a few minutes (building 5 images).</p>
+
+  <h3>C5. Verify ðŸ’»</h3>
+<pre>docker compose -f docker-compose.yml -f docker-compose.prod.yml ps
+curl -fsS -X POST http://localhost/api/scientific \
+  -H 'Content-Type: application/json' -d '{"operation":"log10","value":1000}'
+curl -fsS http://localhost/api/history
+
+# from your laptop:
+curl -fsS http://&lt;EC2_PUBLIC_IP&gt;/api/history</pre>
+  <p>Then open <code>http://&lt;EC2_PUBLIC_IP&gt;</code> in a browser.</p>
+
+  <h3>C6. Make it start on boot (systemd) ðŸ’»</h3>
+<pre>sudo cp /opt/calcu/deploy/calcu.service /etc/systemd/system/calcu.service
+sudo systemctl daemon-reload
+sudo systemctl enable --now calcu.service
+sudo systemctl status calcu --no-pager</pre>
+  <p>Now the stack comes back automatically after <code>sudo reboot</code>. Manage it with:</p>
+<pre>sudo systemctl restart calcu
+sudo systemctl stop calcu
+journalctl -u calcu -f</pre>
+  <blockquote>If you use systemd, let it own the lifecycle â€” do not also run <code>./deploy/deploy.sh</code> by hand. To ship an update, see E2.</blockquote>
+
+  <h2>D. Secrets &amp; environment variables</h2>
+
+  <h3>D1. Local / EC2 â€” the <code>.env</code> file ðŸ’»</h3>
+  <ul>
+    <li>Lives at the repo root, <strong>gitignored</strong>, never committed.</li>
+    <li>Created from <code>.env.example</code>. Compose loads it automatically.</li>
+    <li>Contains: <code>HTTP_PORT</code>, <code>POSTGRES_USER/PASSWORD/DB</code>, pool sizing, <code>IMAGE_TAG</code>.</li>
+    <li>Changing <code>POSTGRES_PASSWORD</code> after the volume exists does <strong>not</strong> change the password inside an already-initialised database â€” see E4.</li>
+  </ul>
+
+  <h3>D2. GitHub Actions secrets âœ‹</h3>
+  <p>Repo â†’ <strong>Settings â†’ Secrets and variables â†’ Actions â†’ New repository secret</strong>:</p>
+  <table>
+    <thead><tr><th>Name</th><th>Value</th></tr></thead>
+    <tbody>
+      <tr><td><code>DOCKERHUB_USERNAME</code></td><td>your Docker Hub username</td></tr>
+      <tr><td><code>DOCKERHUB_TOKEN</code></td><td>the Docker Hub access token from A1</td></tr>
+      <tr><td><code>SLACK_WEBHOOK_URL</code></td><td>your Slack incoming-webhook URL</td></tr>
+    </tbody>
+  </table>
+
+  <h3>D3. Jenkins credentials âœ‹</h3>
+  <p><strong>Manage Jenkins â†’ Credentials â†’ System â†’ Global credentials â†’ Add Credentials</strong>:</p>
+  <table>
+    <thead><tr><th>Kind</th><th>ID (must match exactly)</th><th>Value</th></tr></thead>
+    <tbody>
+      <tr><td>Secret file</td><td><code>kubeconfig-calcu</code></td><td>your clusterâ€™s kubeconfig (<code>~/.kube/config</code>)</td></tr>
+      <tr><td>Secret text</td><td><code>slack-webhook-url</code></td><td>your Slack incoming-webhook URL</td></tr>
+    </tbody>
+  </table>
+  <p>Then edit <code>Jenkinsfile</code> â†’ <code>DOCKERHUB_USERNAME = '&lt;your-dockerhub-username&gt;'</code>. The Jenkins agent also needs <code>kubectl</code> and <code>docker</code> on its <code>PATH</code>.</p>
+
+  <h3>D4. (Optional) pull secrets from AWS instead of <code>.env</code> âœ‹ðŸ’»</h3>
+<pre>sudo apt-get install -y awscli
+PW=$(aws ssm get-parameter --name /calcu/postgres_password --with-decryption \
+      --query Parameter.Value --output text --region &lt;your-region&gt;)
+sed -i "s|^POSTGRES_PASSWORD=.*|POSTGRES_PASSWORD=${PW}|" /opt/calcu/.env</pre>
+
+  <h2>E. Day-2 operations</h2>
+
+  <h3>E1. Inspect a running stack ðŸ’»</h3>
+<pre>cd /opt/calcu
+CF="-f docker-compose.yml -f docker-compose.prod.yml"    # drop for local
+
+docker compose $CF ps                       # container status + health
+docker compose $CF logs -f --tail=100       # follow logs
+docker stats --no-stream                    # live CPU/RAM per container
+docker compose $CF exec postgres psql -U calcu_user -d calcu_db -c '\dt'</pre>
+
+  <h3>E2. Ship a new version (EC2)</h3>
+  <p><strong>If NOT using systemd:</strong></p>
+<pre>cd /opt/calcu
+git pull
+ENV=prod ./deploy/deploy.sh</pre>
+  <p><strong>If using systemd</strong> (the unit rebuilds on start):</p>
+<pre>cd /opt/calcu
+git pull
+sudo systemctl restart calcu
+journalctl -u calcu -f</pre>
+
+  <h3>E3. Roll back (Compose)</h3>
+  <p>Compose has no built-in rollback. Pin to a previous commit:</p>
+<pre>cd /opt/calcu
+git log --oneline -n 5
+git checkout &lt;previous-good-sha&gt;
+ENV=prod ./deploy/deploy.sh      # or: sudo systemctl restart calcu</pre>
+  <p>(The Kubernetes path <em>does</em> auto-roll-back â€” see <code>Jenkinsfile</code> <code>post { failure }</code>.)</p>
+
+  <h3>E4. Rotate the database password ðŸ’»</h3>
+<pre>cd /opt/calcu
+CF="-f docker-compose.yml -f docker-compose.prod.yml"
+NEW=$(openssl rand -base64 24)
+
+# 1. change it inside the running database
+docker compose $CF exec postgres \
+  psql -U calcu_user -d calcu_db -c "ALTER USER calcu_user WITH PASSWORD '${NEW}';"
+
+# 2. update .env so the app uses the new one
+sed -i "s|^POSTGRES_PASSWORD=.*|POSTGRES_PASSWORD=${NEW}|" .env
+
+# 3. recreate the app containers (NOT postgres) to pick it up
+docker compose $CF up -d --no-deps --force-recreate history-service</pre>
+
+  <h3>E5. Back up / restore the history database ðŸ’»</h3>
+<pre>cd /opt/calcu
+CF="-f docker-compose.yml -f docker-compose.prod.yml"
+
+# Backup
+docker compose $CF exec -T postgres \
+  pg_dump -U calcu_user -d calcu_db | gzip &gt; "calcu-$(date +%F).sql.gz"
+
+# Restore (into an empty DB)
+gunzip -c calcu-2026-01-01.sql.gz | \
+  docker compose $CF exec -T postgres psql -U calcu_user -d calcu_db</pre>
+
+  <h3>E6. Free up disk ðŸ’»</h3>
+<pre>docker image prune -f            # dangling images
+docker system df                 # what's using space
+docker system prune -a --volumes # AGGRESSIVE: removes unused images+volumes - check first</pre>
+
+  <h3>E7. Health &amp; troubleshooting</h3>
+  <table>
+    <thead><tr><th>Symptom</th><th>Command</th><th>Likely cause / fix</th></tr></thead>
+    <tbody>
+      <tr><td>Site will not load from laptop</td><td><code>curl -v http://&lt;IP&gt;/</code></td><td>Security group missing port 80; or <code>HTTP_PORT</code> not 80 in <code>.env</code></td></tr>
+      <tr><td><code>history-service</code> unhealthy</td><td><code>docker compose $CF logs history-service</code></td><td>Postgres still starting â€” it retries ~30s; if persistent, check <code>DATABASE_URL</code> and the <code>postgres</code> container</td></tr>
+      <tr><td>â€œExpected JSON but got text/htmlâ€ in UI</td><td>â€”</td><td>You hit the wrong port â€” use the gateway (<code>:80</code> prod, <code>:8080</code> local), not a backend</td></tr>
+      <tr><td>Postgres wonâ€™t start, â€œdirectory not emptyâ€</td><td><code>docker compose $CF logs postgres</code></td><td>Corrupted volume â€” <code>docker volume rm calcu-postgres-data</code> (destroys data)</td></tr>
+      <tr><td>Out of memory on <code>t3.micro</code></td><td><code>free -m</code>, <code>docker stats</code></td><td>Add a 2&nbsp;GB swapfile (<code>fallocate</code> â†’ <code>mkswap</code> â†’ <code>swapon</code> â†’ add to <code>/etc/fstab</code>)</td></tr>
+      <tr><td>Need a shell in a container</td><td><code>docker compose $CF exec &lt;service&gt; sh</code></td><td>â€”</td></tr>
+    </tbody>
+  </table>
+
+  <h2>F. Teardown</h2>
+
+  <h3>F1. Stop the app, keep data ðŸ’»</h3>
+<pre>cd /opt/calcu
+sudo systemctl disable --now calcu 2&gt;/dev/null || true
+docker compose -f docker-compose.yml -f docker-compose.prod.yml down</pre>
+
+  <h3>F2. Remove everything on the instance ðŸ’»</h3>
+<pre>docker compose -f docker-compose.yml -f docker-compose.prod.yml down -v --rmi local
+docker system prune -af --volumes
+sudo rm -rf /opt/calcu
+sudo rm -f /etc/systemd/system/calcu.service &amp;&amp; sudo systemctl daemon-reload</pre>
+
+  <h3>F3. Delete AWS resources âœ‹</h3>
+  <p>EC2 Console â†’ Instances â†’ select <code>calcu</code> â†’ <strong>Instance state â†’ Terminate</strong>. Then delete the <code>calcu-sg</code> security group, the key pair (optional), and any IAM role you created.</p>
+
+  <h2>Appendix â€” one-page cheat sheet</h2>
+<pre># ---------- LOCAL ----------
+cp .env.example .env
+docker compose up -d --build
+docker compose ps
+# http://localhost:8080
+docker compose logs -f
+docker compose down [-v]
+
+# ---------- EC2 (first time) ----------
+ssh -i key.pem ubuntu@&lt;IP&gt;
+sudo mkdir -p /opt/calcu &amp;&amp; sudo chown $USER /opt/calcu
+git clone &lt;repo&gt; /opt/calcu &amp;&amp; cd /opt/calcu
+chmod +x deploy/*.sh &amp;&amp; ./deploy/ec2-provision.sh &amp;&amp; newgrp docker
+cp .env.example .env   # set HTTP_PORT=80 + POSTGRES_PASSWORD
+ENV=prod ./deploy/deploy.sh
+sudo cp deploy/calcu.service /etc/systemd/system/ &amp;&amp; sudo systemctl enable --now calcu
+
+# ---------- EC2 (update) ----------
+cd /opt/calcu &amp;&amp; git pull &amp;&amp; sudo systemctl restart calcu
+
+# ---------- TESTS ----------
+cd services/&lt;svc&gt; &amp;&amp; python3 -m venv .venv &amp;&amp; . .venv/bin/activate \
+  &amp;&amp; pip install -r requirements.txt pytest &amp;&amp; pytest -v</pre>
+
+  <hr/>
+  <p class="legend">Generated for the <code>calcu</code> project. The canonical source is <code>DEVOPS_GUIDE.md</code> and <code>RUNBOOK.md</code> in the repository â€” if they diverge, the Markdown files win.</p>
+
+</div>
+</body>
+</html>

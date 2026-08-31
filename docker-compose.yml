@@ -1,71 +1,108 @@
+# docker-compose.yml — the calcu microservices stack.
+#
+# Works the same locally and on an AWS EC2 instance. Every setting that changes
+# between environments (published port, database password, image tag) is read
+# from a .env file sitting next to this one — copy .env.example to .env and
+# edit it. Compose auto-loads .env; nothing here needs editing by hand.
+#
+#   Local:  docker compose up -d --build         # then open http://localhost:8080
+#   EC2:    docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+#
+# Image / container / network names are all prefixed "calcu-" so `docker ps`,
+# `docker images`, and `docker network ls` stay readable and never collide with
+# another project on the same host.
+
+name: calcu
+
 services:
+  # -------------------- PostgreSQL (calculation history storage) --------------------
   postgres:
     image: postgres:16-alpine
     container_name: calcu-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_USER: calcu_user
-      POSTGRES_PASSWORD: calcu_pass
-      POSTGRES_DB: calcu_db
+      POSTGRES_USER: ${POSTGRES_USER:-calcu_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-calcu_pass}
+      POSTGRES_DB: ${POSTGRES_DB:-calcu_db}
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - calcu-postgres-data:/var/lib/postgresql/data
       - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
-    ports:
-      - "5432:5432"
+    # No host port here on purpose: the app reaches Postgres over the private
+    # "calcu-net" network. docker-compose.override.yml (auto-loaded for local
+    # dev only) publishes 127.0.0.1:5432 for your psql/debugging use.
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U calcu_user -d calcu_db"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-calcu_user} -d ${POSTGRES_DB:-calcu_db}"]
       interval: 10s
       timeout: 5s
       retries: 5
     networks:
       - calcu-net
 
+  # -------------------- history-service (Flask + SQLAlchemy, :5003) --------------------
   history-service:
     build:
       context: ./services/history-service
+    image: calcu-history-service:${IMAGE_TAG:-latest}
     container_name: calcu-history-service
     restart: unless-stopped
     environment:
-      DATABASE_URL: postgresql+psycopg2://calcu_user:calcu_pass@postgres:5432/calcu_db
+      DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER:-calcu_user}:${POSTGRES_PASSWORD:-calcu_pass}@postgres:5432/${POSTGRES_DB:-calcu_db}
+      DB_POOL_SIZE: ${DB_POOL_SIZE:-5}
+      DB_MAX_OVERFLOW: ${DB_MAX_OVERFLOW:-5}
+      DB_INIT_RETRIES: ${DB_INIT_RETRIES:-10}
     depends_on:
       postgres:
         condition: service_healthy
     expose:
       - "5003"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:5003/health').status==200 else 1)"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 45s
     networks:
       - calcu-net
 
+  # -------------------- scientific-engine (Flask, :5001) --------------------
   scientific-engine:
     build:
       context: ./services/scientific-engine
+    image: calcu-scientific-engine:${IMAGE_TAG:-latest}
     container_name: calcu-scientific-engine
     restart: unless-stopped
     environment:
       HISTORY_SERVICE_URL: http://history-service:5003
     depends_on:
-      - history-service
+      history-service:
+        condition: service_started
     expose:
       - "5001"
     networks:
       - calcu-net
 
+  # -------------------- financial-engine (Flask, :5002) --------------------
   financial-engine:
     build:
       context: ./services/financial-engine
+    image: calcu-financial-engine:${IMAGE_TAG:-latest}
     container_name: calcu-financial-engine
     restart: unless-stopped
     environment:
       HISTORY_SERVICE_URL: http://history-service:5003
     depends_on:
-      - history-service
+      history-service:
+        condition: service_started
     expose:
       - "5002"
     networks:
       - calcu-net
 
+  # -------------------- frontend (static HTML/CSS/JS on nginx, :80) --------------------
   frontend:
     build:
       context: ./frontend
+    image: calcu-frontend:${IMAGE_TAG:-latest}
     container_name: calcu-frontend
     restart: unless-stopped
     expose:
@@ -73,13 +110,16 @@ services:
     networks:
       - calcu-net
 
+  # -------------------- nginx (edge reverse proxy / API gateway) --------------------
   nginx:
     build:
       context: ./nginx
+    image: calcu-nginx:${IMAGE_TAG:-latest}
     container_name: calcu-nginx
     restart: unless-stopped
+    # HTTP_PORT is 8080 locally; set it to 80 in .env on EC2.
     ports:
-      - "8080:80"
+      - "${HTTP_PORT:-8080}:80"
     depends_on:
       - frontend
       - scientific-engine
@@ -89,8 +129,10 @@ services:
       - calcu-net
 
 volumes:
-  postgres_data:
+  calcu-postgres-data:
+    name: calcu-postgres-data
 
 networks:
   calcu-net:
+    name: calcu-net
     driver: bridge

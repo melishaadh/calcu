@@ -1,0 +1,38 @@
+# calcu.service — systemd unit that starts the calcu stack on boot and
+# stops it cleanly on shutdown. Docker's own restart policies keep individual
+# containers alive; this makes the whole Compose project come up after an EC2
+# reboot without anyone logging in.
+#
+# Install (assumes the repo is checked out at /opt/calcu and owned by "ubuntu"):
+#
+#   sudo cp deploy/calcu.service /etc/systemd/system/calcu.service
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now calcu.service
+#
+# Manage:
+#   sudo systemctl status calcu
+#   sudo systemctl restart calcu
+#   journalctl -u calcu -f
+
+[Unit]
+Description=calcu microservices stack (Docker Compose)
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=/opt/calcu
+User=ubuntu
+Group=docker
+
+# Bring the stack up with the production overrides.
+ExecStart=/usr/bin/docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build --remove-orphans
+ExecStop=/usr/bin/docker compose -f docker-compose.yml -f docker-compose.prod.yml down
+ExecReload=/usr/bin/docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build --remove-orphans
+
+TimeoutStartSec=0
+
+[Install]
+WantedBy=multi-user.target

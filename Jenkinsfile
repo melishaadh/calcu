@@ -41,12 +41,10 @@ pipeline {
         // The Kubernetes namespace all our resources live in (see k8s/postgres-pv-pvc-secret.yaml)
         K8S_NAMESPACE = 'calcu'
 
-        // The Deployments we need to update, space-separated
+        // The Deployments we need to update, space-separated. The nginx gateway
+        // is not listed: its image tag is ":latest" and its routing config is
+        // baked in, so it does not participate in tag-based rollouts.
         SERVICES = 'scientific-engine financial-engine history-service frontend'
-
-        // Use the IMAGE_TAG parameter if one was given, otherwise fall back
-        // to the exact Git commit that triggered this build
-        DEPLOY_TAG = "${params.IMAGE_TAG ?: env.GIT_COMMIT}"
     }
 
     options {
@@ -63,6 +61,16 @@ pipeline {
         stage('Checkout Code') {
             steps {
                 checkout scm   // "scm" means: check out whatever branch/repo triggered this build
+                script {
+                    // Resolve the deploy tag ONLY after checkout, when
+                    // env.GIT_COMMIT is populated. Priority:
+                    //   1. the IMAGE_TAG build parameter, if given
+                    //   2. the exact commit SHA that triggered this build
+                    //   3. "latest" as a last resort
+                    def param = params.IMAGE_TAG?.trim()
+                    env.DEPLOY_TAG = param ? param : (env.GIT_COMMIT ?: 'latest')
+                    echo "Deploying image tag: ${env.DEPLOY_TAG}"
+                }
             }
         }
 
@@ -72,7 +80,7 @@ pipeline {
         stage('Notify: Start') {
             steps {
                 slackNotify(
-                    ":rocket: Deployment STARTED for calcu - tag `${DEPLOY_TAG}` - build #${BUILD_NUMBER}",
+                    ":rocket: Deployment STARTED for calcu - tag `${env.DEPLOY_TAG}` - build #${BUILD_NUMBER}",
                     '#439FE0'
                 )
             }
@@ -99,14 +107,14 @@ pipeline {
             steps {
                 withCredentials([file(credentialsId: 'kubeconfig-calcu', variable: 'KUBECONFIG')]) {
                     script {
-                        slackNotify(":arrows_counterclockwise: Rolling update in progress for tag `${DEPLOY_TAG}`", '#439FE0')
+                        slackNotify(":arrows_counterclockwise: Rolling update in progress for tag `${env.DEPLOY_TAG}`", '#439FE0')
                         def services = env.SERVICES.split(' ')
                         for (svc in services) {
                             // "kubectl set image" swaps the container image for a running Deployment.
                             // Kubernetes then automatically starts new pods and retires old ones
                             // gradually - this is the "rolling" part of a rolling update.
                             sh """
-                                kubectl set image deployment/${svc} ${svc}=${DOCKERHUB_USERNAME}/calcu-${svc}:${DEPLOY_TAG} \
+                                kubectl set image deployment/${svc} ${svc}=${DOCKERHUB_USERNAME}/calcu-${svc}:${env.DEPLOY_TAG} \
                                     --namespace=${K8S_NAMESPACE}
                             """
                         }
@@ -146,11 +154,11 @@ pipeline {
     // ------------------------------------------------------------
     post {
         success {
-            slackNotify(":white_check_mark: Deployment SUCCESS for calcu - tag `${DEPLOY_TAG}` - build #${BUILD_NUMBER}", 'good')
+            slackNotify(":white_check_mark: Deployment SUCCESS for calcu - tag `${env.DEPLOY_TAG}` - build #${BUILD_NUMBER}", 'good')
         }
         failure {
             script {
-                slackNotify(":x: Deployment FAILED for calcu - tag `${DEPLOY_TAG}` - rolling back automatically", 'danger')
+                slackNotify(":x: Deployment FAILED for calcu - tag `${env.DEPLOY_TAG}` - rolling back automatically", 'danger')
                 // "rollout undo" reverts every Deployment back to its previous working image,
                 // so a bad deploy doesn't leave the app broken for users.
                 withCredentials([file(credentialsId: 'kubeconfig-calcu', variable: 'KUBECONFIG')]) {

@@ -68,6 +68,12 @@ def scientific():
     except (TypeError, ValueError):
         return jsonify({"error": "'value' must be numeric"}), 400
 
+    if base is not None:
+        try:
+            base = float(base)
+        except (TypeError, ValueError):
+            return jsonify({"error": "'base' must be numeric"}), 400
+
     try:
         if operation == "sin":
             result = math.sin(math.radians(value))
@@ -94,13 +100,24 @@ def scientific():
         elif operation == "pow":
             if base is None:
                 return jsonify({"error": "'base' is required for pow"}), 400
-            result = math.pow(value, float(base))
+            result = math.pow(value, base)
         elif operation == "factorial":
-            result = math.factorial(int(value))
+            # factorial needs a non-negative integer, and a huge argument
+            # (factorial(1e6) is ~5.5M digits) would pin a CPU for seconds -
+            # reject both instead of hanging the worker.
+            if value < 0 or not value.is_integer():
+                return jsonify({"error": "factorial requires a non-negative integer"}), 400
+            # 170! is the largest factorial that still fits in a float (and so
+            # in the history NUMERIC column); 171! overflows to infinity.
+            if value > 170:
+                return jsonify({"error": "factorial argument too large (max 170)"}), 400
+            result = float(math.factorial(int(value)))
         else:
             return jsonify({"error": "Unsupported operation"}), 400
     except ValueError as exc:
         return jsonify({"error": f"Math domain error: {exc}"}), 400
+    except OverflowError:
+        return jsonify({"error": "Result is too large to represent"}), 400
 
     expression = f"{operation}({value}{', ' + str(base) if base is not None else ''})"
     record_history(expression, result)

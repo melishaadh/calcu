@@ -38,7 +38,13 @@ USER appuser
 
 EXPOSE 5003
 
-HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+# start-period covers the worst-case wait for Postgres on a cold start
+# (init_db() retries DB_INIT_RETRIES x 2s before the app serves traffic).
+HEALTHCHECK --interval=30s --timeout=5s --start-period=45s --retries=3 \
     CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:5003/health')" || exit 1
 
-CMD ["gunicorn", "--bind", "0.0.0.0:5003", "--workers", "2", "--threads", "2", "--timeout", "30", "wsgi:app"]
+# --preload: import the app once in the master so init_db() (schema create +
+#   Postgres wait) runs a single time, not once per worker.
+# --timeout 60: a slow first DB connection during boot must not trip Gunicorn's
+#   worker-timeout kill.
+CMD ["gunicorn", "--preload", "--bind", "0.0.0.0:5003", "--workers", "2", "--threads", "2", "--timeout", "60", "wsgi:app"]

@@ -1,52 +1,62 @@
 # .github/workflows/ci.yml
 #
-# This is our Continuous Integration (CI) pipeline. GitHub Actions runs this
-# file automatically every time someone pushes to "main" or opens a Pull Request.
+# Continuous Integration for calcu. Runs on every push to "main" and on every
+# Pull Request targeting "main".
 #
-# What it does, step by step:
-#   1. Runs our Python unit tests for all three backend services
-#   2. Logs into Docker Hub
-#   3. Builds a Docker image for every microservice
-#   4. Scans each image for security vulnerabilities using Trivy
-#   5. Pushes the images to Docker Hub (only on a real push to "main")
-#   6. Sends a Slack message saying whether it all worked or not
+# Pipeline:
+#   1. test            - pytest for the three Python services (matrix, parallel)
+#   2. build-scan-push - build every image, scan it with Trivy, push to Docker
+#                        Hub  (push to main only)
+#   3. notify          - one Slack message with the overall result
 #
-# SECURITY NOTE: This file references secrets.DOCKERHUB_USERNAME,
-# secrets.DOCKERHUB_TOKEN, and secrets.SLACK_WEBHOOK_URL instead of writing
-# the real values directly in this file. That's on purpose - anything typed
-# into a workflow file gets committed to Git and can be read by anyone with
-# access to the repository. See README.md for exactly where to paste your
-# real values (GitHub repo Settings -> Secrets and variables -> Actions).
+# SECRETS (repo -> Settings -> Secrets and variables -> Actions):
+#   DOCKERHUB_USERNAME  your Docker Hub username
+#   DOCKERHUB_TOKEN     a Docker Hub access token (NOT your password)
+#   SLACK_WEBHOOK_URL   a Slack incoming-webhook URL
+#
+# Nothing sensitive is hard-coded here — see README.md.
 
 name: CI
 
 on:
   push:
-    branches: [main]        # Runs when code is pushed directly to "main"
+    branches: [main]
   pull_request:
-    branches: [main]        # Also runs on every Pull Request targeting "main"
+    branches: [main]
+
+# Least privilege: this workflow only needs to read the repo.
+permissions:
+  contents: read
+
+# A newer push to the same branch cancels an in-progress run.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 env:
-  # Builds an image name prefix like "yourname/calcu-scientific-engine"
-  IMAGE_PREFIX: ${{ secrets.DOCKERHUB_USERNAME }}/calcu
+  # Pinned Trivy version. The aquasecurity/trivy-action Marketplace action and
+  # several Trivy releases were compromised in a March 2026 supply-chain
+  # incident, so we run the scanner from its official image at a fixed,
+  # pre-incident tag instead of the action. Bump deliberately, not automatically.
+  TRIVY_IMAGE: aquasec/trivy:0.55.2
 
 jobs:
   # ==============================================================
-  # JOB 1: Run unit tests for every backend service
-  # "strategy: matrix" runs this job once per service listed, in parallel.
+  # JOB 1 — unit tests
   # ==============================================================
   test:
-    name: Unit Tests
+    name: Unit Tests (${{ matrix.service }})
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         service: [scientific-engine, financial-engine, history-service]
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v5
         with:
           python-version: "3.11"
           cache: "pip"
@@ -56,119 +66,127 @@ jobs:
         working-directory: services/${{ matrix.service }}
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
-          pip install pytest
+          pip install -r requirements.txt pytest
 
       - name: Run pytest
         working-directory: services/${{ matrix.service }}
         run: pytest -v
 
   # ==============================================================
-  # JOB 2: Build, scan, and push a Docker image for every service
-  # Only runs on an actual push to "main" (not on Pull Requests), and only
-  # after every test above has passed.
+  # JOB 2 — build, scan, push (push to main only)
   # ==============================================================
   build-scan-push:
-    name: Build, Scan & Push
+    name: Build, Scan & Push (${{ matrix.service.name }})
     needs: test
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     strategy:
+      fail-fast: false
       matrix:
         service:
-          - name: scientific-engine
-            context: services/scientific-engine
-          - name: financial-engine
-            context: services/financial-engine
-          - name: history-service
-            context: services/history-service
-          - name: frontend
-            context: frontend
-          - name: nginx
-            context: nginx
+          - { name: scientific-engine, context: services/scientific-engine }
+          - { name: financial-engine,  context: services/financial-engine }
+          - { name: history-service,   context: services/history-service }
+          - { name: frontend,          context: frontend }
+          - { name: nginx,             context: nginx }
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v4
 
-      # Log in to Docker Hub using secrets stored in GitHub
-      # (Set these in: Repo Settings -> Secrets and variables -> Actions)
+      - name: Fail early if Docker Hub secrets are missing
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        run: |
+          if [ -z "$DOCKERHUB_USERNAME" ] || [ -z "$DOCKERHUB_TOKEN" ]; then
+            echo "::error::DOCKERHUB_USERNAME / DOCKERHUB_TOKEN secrets are not set."
+            exit 1
+          fi
+
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # Build the image, tagged with both the exact commit SHA (for
-      # traceability, so Jenkins can deploy an exact known-good version
-      # later) and "latest".
-      - name: Build Docker image
-        env:
-          REPO: ${{ env.IMAGE_PREFIX }}-${{ matrix.service.name }}
-          IMAGE_TAG: ${{ github.sha }}
-        run: |
-          docker build -t $REPO:$IMAGE_TAG -t $REPO:latest ${{ matrix.service.context }}
+      - name: Set image reference
+        id: img
+        run: echo "repo=${{ secrets.DOCKERHUB_USERNAME }}/calcu-${{ matrix.service.name }}" >> "$GITHUB_OUTPUT"
 
-      # Trivy is a free, open-source vulnerability scanner from Aqua Security.
-      # The scan still runs on every build and prints a full CRITICAL/HIGH
-      # report to the job log for visibility, but "exit-code: 0" keeps it
-      # NON-BLOCKING: third-party OS CVEs in the base image (musl, libssl3,
-      # libxml2, ...) that are outside our application code no longer fail the
-      # pipeline. Tighten this back to "1" once base images are clean if you
-      # want a hard gate.
-      - name: Run Trivy vulnerability scan
-        uses: aquasecurity/trivy-action@v0.36.0
-        with:
-          image-ref: ${{ env.IMAGE_PREFIX }}-${{ matrix.service.name }}:${{ github.sha }}
-          format: table
-          severity: CRITICAL,HIGH
-          exit-code: "0"
-          ignore-unfixed: true
-
-      # Push both tags to Docker Hub - only reached if tests + the scan passed
-      - name: Push image to Docker Hub
-        if: success()
-        env:
-          REPO: ${{ env.IMAGE_PREFIX }}-${{ matrix.service.name }}
-          IMAGE_TAG: ${{ github.sha }}
+      - name: Build image
         run: |
-          docker push $REPO:$IMAGE_TAG
-          docker push $REPO:latest
+          docker build \
+            -t "${{ steps.img.outputs.repo }}:${{ github.sha }}" \
+            -t "${{ steps.img.outputs.repo }}:latest" \
+            "${{ matrix.service.context }}"
+
+      # Trivy runs from its official pinned image and reads the just-built
+      # image straight out of the Docker daemon (socket mount). The scan is
+      # NON-BLOCKING: it prints a CRITICAL/HIGH report to the log for
+      # visibility, but neither a found CVE (--exit-code 0) nor a transient
+      # Trivy/DB error (the `|| true`) fails the build. Drop the `|| true` and
+      # set --exit-code 1 to turn it into a hard gate.
+      - name: Trivy vulnerability scan
+        continue-on-error: true
+        run: |
+          docker run --rm \
+            -v /var/run/docker.sock:/var/run/docker.sock \
+            "$TRIVY_IMAGE" image \
+              --scanners vuln \
+              --severity CRITICAL,HIGH \
+              --ignore-unfixed \
+              --exit-code 0 \
+              --no-progress \
+              "${{ steps.img.outputs.repo }}:${{ github.sha }}" || true
+
+      - name: Push image
+        run: |
+          docker push "${{ steps.img.outputs.repo }}:${{ github.sha }}"
+          docker push "${{ steps.img.outputs.repo }}:latest"
 
   # ==============================================================
-  # JOB 3: Always tell the team what happened on Slack, win or lose
+  # JOB 3 — Slack notification
   # ==============================================================
   notify:
     name: Slack Notification
     needs: [test, build-scan-push]
-    if: always()   # Runs even if an earlier job failed
+    if: always()
     runs-on: ubuntu-latest
     steps:
-      - name: Determine status
-        id: status
-        run: |
-          if [ "${{ contains(needs.*.result, 'failure') }}" = "true" ]; then
-            echo "state=FAILURE" >> "$GITHUB_OUTPUT"
-            echo "color=#FF0000" >> "$GITHUB_OUTPUT"
-          else
-            echo "state=SUCCESS" >> "$GITHUB_OUTPUT"
-            echo "color=#36A64F" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Send Slack notification
+      - name: Send Slack message
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          # Pass untrusted values through the environment, never string
+          # interpolation, so a commit message with quotes/newlines cannot
+          # break the JSON payload or inject shell.
+          RESULT_TEST: ${{ needs.test.result }}
+          RESULT_BUILD: ${{ needs.build-scan-push.result }}
+          REPO: ${{ github.repository }}
+          BRANCH: ${{ github.ref_name }}
+          SHA: ${{ github.sha }}
+          ACTOR: ${{ github.actor }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
-          curl -sf -X POST -H 'Content-type: application/json' \
-            --data "$(cat <<EOF
-          {
-            "attachments": [
-              {
-                "color": "${{ steps.status.outputs.color }}",
-                "title": "CI ${{ steps.status.outputs.state }}: calcu",
-                "text": "*Repository:* ${{ github.repository }}\n*Branch:* ${{ github.ref_name }}\n*Commit:* \`${{ github.sha }}\`\n*Author:* ${{ github.actor }}\n*Message:* ${{ github.event.head_commit.message }}\n*Run:* ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-              }
-            ]
-          }
-          EOF
-          )" \
-            "$SLACK_WEBHOOK_URL"
+          if [ -z "$SLACK_WEBHOOK_URL" ]; then
+            echo "SLACK_WEBHOOK_URL not set — skipping notification."
+            exit 0
+          fi
+
+          # "skipped" (e.g. build-scan-push on a PR) is not a failure.
+          if [ "$RESULT_TEST" = "failure" ] || [ "$RESULT_BUILD" = "failure" ]; then
+            STATE="FAILURE"; COLOR="#d64541"
+          else
+            STATE="SUCCESS"; COLOR="#3aa757"
+          fi
+
+          # printf turns the \n into real newlines; jq then encodes them
+          # correctly as \n inside the JSON string.
+          TEXT=$(printf '*Repo:* %s\n*Branch:* %s\n*Commit:* `%s`\n*By:* %s\n*Run:* %s' \
+                        "$REPO" "$BRANCH" "$SHA" "$ACTOR" "$RUN_URL")
+
+          jq -n \
+            --arg color "$COLOR" \
+            --arg title "CI $STATE: calcu" \
+            --arg text "$TEXT" \
+            '{attachments: [{color: $color, title: $title, text: $text}]}' \
+          | curl -sSf -X POST -H 'Content-type: application/json' -d @- "$SLACK_WEBHOOK_URL"
