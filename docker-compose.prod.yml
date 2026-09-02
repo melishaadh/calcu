@@ -26,11 +26,7 @@ services:
     restart: always
     logging: *default-logging
 
-  scientific-engine:
-    restart: always
-    logging: *default-logging
-
-  financial-engine:
+  calculator-engine:
     restart: always
     logging: *default-logging
 

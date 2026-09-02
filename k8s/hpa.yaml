@@ -1,55 +1,16 @@
-# Autoscaling for the two stateless compute engines. Requires metrics-server
+# Autoscaling for the stateless compute engine. Requires metrics-server
 # (see README). history-service is deliberately left at a fixed 2 replicas -
 # scaling it would multiply the Postgres connection count.
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
-  name: scientific-engine-hpa
+  name: calculator-engine-hpa
   namespace: calcu
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
-    name: scientific-engine
-  minReplicas: 2
-  maxReplicas: 8
-  metrics:
-    - type: Resource
-      resource:
-        name: cpu
-        target:
-          type: Utilization
-          averageUtilization: 70
-    - type: Resource
-      resource:
-        name: memory
-        target:
-          type: Utilization
-          averageUtilization: 80
-  behavior:
-    scaleUp:
-      stabilizationWindowSeconds: 30
-      policies:
-        - type: Pods
-          value: 2
-          periodSeconds: 60
-    scaleDown:
-      stabilizationWindowSeconds: 120
-      policies:
-        - type: Pods
-          value: 1
-          periodSeconds: 60
----
-apiVersion: autoscaling/v2
-kind: HorizontalPodAutoscaler
-metadata:
-  name: financial-engine-hpa
-  namespace: calcu
-spec:
-  scaleTargetRef:
-    apiVersion: apps/v1
-    kind: Deployment
-    name: financial-engine
+    name: calculator-engine
   minReplicas: 2
   maxReplicas: 8
   metrics:

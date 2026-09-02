@@ -29,7 +29,7 @@ header h1 {
 }
 
 main {
-  max-width: 720px;
+  max-width: 480px;
   margin: 0 auto;
   padding: 1rem 1.5rem 3rem;
   display: flex;
@@ -50,31 +50,45 @@ main {
   color: var(--accent);
 }
 
+.muted {
+  color: var(--muted);
+  font-weight: normal;
+  font-size: 0.85rem;
+}
+
 .form-row {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.75rem;
 }
 
 select,
 input {
   flex: 1;
-  min-width: 100px;
+  min-width: 90px;
   padding: 0.5rem;
   border-radius: 6px;
   border: 1px solid #334155;
   background: #0f172a;
   color: var(--text);
+  font-size: 1rem;
+}
+
+select {
+  flex: 0 0 60px;
+  text-align: center;
 }
 
 button {
-  padding: 0.5rem 1rem;
+  width: 100%;
+  padding: 0.6rem 1rem;
   border: none;
   border-radius: 6px;
   background: var(--accent);
   color: #0f172a;
   font-weight: 600;
+  font-size: 1rem;
   cursor: pointer;
 }
 
@@ -82,24 +96,30 @@ button:hover {
   opacity: 0.9;
 }
 
+#refresh-btn {
+  width: auto;
+  padding: 0.4rem 0.9rem;
+  font-size: 0.85rem;
+  margin-bottom: 0.5rem;
+}
+
 .result {
   margin-top: 0.75rem;
   font-family: monospace;
+  font-size: 1.4rem;
+  text-align: center;
   white-space: pre-wrap;
 }
 
 .result.error {
   color: var(--error);
-}
-
-.hidden {
-  display: none;
+  font-size: 1rem;
 }
 
 #history-list {
   list-style: none;
   padding: 0;
-  margin-top: 0.75rem;
+  margin: 0;
   max-height: 260px;
   overflow-y: auto;
 }
@@ -108,4 +128,8 @@ button:hover {
   padding: 0.5rem 0;
   border-bottom: 1px solid #334155;
   font-size: 0.9rem;
+}
+
+#history-list li.error {
+  color: var(--error);
 }

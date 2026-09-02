@@ -5,7 +5,7 @@
 # from a .env file sitting next to this one — copy .env.example to .env and
 # edit it. Compose auto-loads .env; nothing here needs editing by hand.
 #
-#   Local:  docker compose up -d --build         # then open http://localhost:8080
+#   Local:  docker compose up -d --build         # then open http://localhost:8081
 #   EC2:    docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
 #
 # Image / container / network names are all prefixed "calcu-" so `docker ps`,
@@ -64,12 +64,12 @@ services:
     networks:
       - calcu-net
 
-  # -------------------- scientific-engine (Flask, :5001) --------------------
-  scientific-engine:
+  # -------------------- calculator-engine (Flask, :5001) --------------------
+  calculator-engine:
     build:
-      context: ./services/scientific-engine
-    image: calcu-scientific-engine:${IMAGE_TAG:-latest}
-    container_name: calcu-scientific-engine
+      context: ./services/calculator-engine
+    image: calcu-calculator-engine:${IMAGE_TAG:-latest}
+    container_name: calcu-calculator-engine
     restart: unless-stopped
     environment:
       HISTORY_SERVICE_URL: http://history-service:5003
@@ -78,23 +78,6 @@ services:
         condition: service_started
     expose:
       - "5001"
-    networks:
-      - calcu-net
-
-  # -------------------- financial-engine (Flask, :5002) --------------------
-  financial-engine:
-    build:
-      context: ./services/financial-engine
-    image: calcu-financial-engine:${IMAGE_TAG:-latest}
-    container_name: calcu-financial-engine
-    restart: unless-stopped
-    environment:
-      HISTORY_SERVICE_URL: http://history-service:5003
-    depends_on:
-      history-service:
-        condition: service_started
-    expose:
-      - "5002"
     networks:
       - calcu-net
 
@@ -117,13 +100,13 @@ services:
     image: calcu-nginx:${IMAGE_TAG:-latest}
     container_name: calcu-nginx
     restart: unless-stopped
-    # HTTP_PORT is 8080 locally; set it to 80 in .env on EC2.
+    # HTTP_PORT is 8081 locally (8080 is already used by Jenkins on this host);
+    # set it to 80 in .env on EC2.
     ports:
-      - "${HTTP_PORT:-8080}:80"
+      - "${HTTP_PORT:-8081}:80"
     depends_on:
       - frontend
-      - scientific-engine
-      - financial-engine
+      - calculator-engine
       - history-service
     networks:
       - calcu-net

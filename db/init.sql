@@ -13,6 +13,10 @@
 -- Indexes are intentionally NOT declared here: the ORM model owns them
 -- (Column(..., index=True)), which keeps a single source of truth and avoids
 -- duplicate indexes when both this file and create_all() run.
+--
+-- Rows are kept for 7 days: history-service deletes anything older than that
+-- automatically (after every write, and on an hourly background sweep) - see
+-- HISTORY_RETENTION_DAYS in services/history-service/app.py.
 
 CREATE TABLE IF NOT EXISTS calculation_history (
     id              SERIAL PRIMARY KEY,

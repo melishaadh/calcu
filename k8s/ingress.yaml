@@ -11,7 +11,7 @@
 # the one-line command to enable it.
 #
 # We do NOT rewrite the URL paths - each request keeps its original path
-# (e.g. "/api/scientific") exactly as-is when it reaches the backend Service,
+# (e.g. "/api/calculate") exactly as-is when it reaches the backend Service,
 # because our Flask apps expect to receive that exact path.
 
 apiVersion: networking.k8s.io/v1
@@ -24,23 +24,14 @@ spec:
   rules:
     - http:
         paths:
-          # Requests starting with /api/scientific -> scientific-engine Service
-          - path: /api/scientific
+          # Requests starting with /api/calculate -> calculator-engine Service
+          - path: /api/calculate
             pathType: Prefix
             backend:
               service:
-                name: scientific-engine
+                name: calculator-engine
                 port:
                   number: 5001
-
-          # Requests starting with /api/financial -> financial-engine Service
-          - path: /api/financial
-            pathType: Prefix
-            backend:
-              service:
-                name: financial-engine
-                port:
-                  number: 5002
 
           # Requests starting with /api/history -> history-service Service
           - path: /api/history

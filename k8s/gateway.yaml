@@ -8,9 +8,9 @@
 #
 # This runs the project's own `calcu-nginx` image (built from nginx/, with
 # nginx/nginx.conf baked in) as a NodePort gateway. Its upstream names already
-# match the Kubernetes Service names (frontend:80, scientific-engine:5001,
-# financial-engine:5002, history-service:5003), so the exact same config works
-# in Compose and here - no ConfigMap copy to keep in sync.
+# match the Kubernetes Service names (frontend:80, calculator-engine:5001,
+# history-service:5003), so the exact same config works in Compose and here -
+# no ConfigMap copy to keep in sync.
 #
 # Access the app through THIS Service. It does not need an Ingress Controller;
 # k8s/ingress.yaml still works as a second path once one is enabled.

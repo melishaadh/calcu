@@ -1,7 +1,8 @@
 import logging
 import os
+import threading
 import time
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from flask import Flask, jsonify, request
 from sqlalchemy import (
@@ -46,6 +47,13 @@ def _int_env(name, default):
 DB_POOL_SIZE = _int_env("DB_POOL_SIZE", 5)
 DB_MAX_OVERFLOW = _int_env("DB_MAX_OVERFLOW", 5)
 DB_POOL_TIMEOUT = _int_env("DB_POOL_TIMEOUT", 30)
+
+# How long a calculation stays in the history before it is deleted
+# automatically. Enforced two ways: opportunistically after every write (see
+# create_history), and by a background thread (see _cleanup_loop) so old rows
+# still get purged even during a stretch with no new calculations.
+HISTORY_RETENTION_DAYS = _int_env("HISTORY_RETENTION_DAYS", 7)
+CLEANUP_INTERVAL_SECONDS = _int_env("CLEANUP_INTERVAL_SECONDS", 3600)
 
 
 def _build_engine(url):
@@ -127,6 +135,36 @@ def init_db(retries=None, delay=None):
     return False
 
 
+def cleanup_old_history():
+    """Delete every history row older than HISTORY_RETENTION_DAYS. Returns the count removed."""
+    cutoff = datetime.now(timezone.utc) - timedelta(days=HISTORY_RETENTION_DAYS)
+    session = SessionLocal()
+    try:
+        deleted = (
+            session.query(CalculationHistory)
+            .filter(CalculationHistory.created_at < cutoff)
+            .delete(synchronize_session=False)
+        )
+        session.commit()
+        if deleted:
+            logger.info("Cleanup removed %s history record(s) older than %s days", deleted, HISTORY_RETENTION_DAYS)
+        return deleted
+    except SQLAlchemyError as exc:
+        session.rollback()
+        logger.error("History cleanup failed: %s", exc)
+        return 0
+    finally:
+        SessionLocal.remove()
+
+
+def _cleanup_loop():
+    """Background thread: purge history older than the retention window on a
+    fixed interval, so cleanup happens even without new writes."""
+    while True:
+        time.sleep(CLEANUP_INTERVAL_SECONDS)
+        cleanup_old_history()
+
+
 app = Flask(__name__)
 
 # Runs once, in the Gunicorn master, because the container starts Gunicorn with
@@ -138,6 +176,8 @@ app = Flask(__name__)
 if not DATABASE_URL.startswith("sqlite"):
     init_db()
     engine.dispose()
+    cleanup_old_history()
+    threading.Thread(target=_cleanup_loop, daemon=True).start()
 
 
 @app.errorhandler(Exception)
@@ -197,26 +237,34 @@ def create_history():
         )
         session.add(record)
         session.commit()
-        return jsonify(record.to_dict()), 201
+        result_dict = record.to_dict()
     except SQLAlchemyError as exc:
         session.rollback()
         logger.error("Failed to write history: %s", exc)
         return jsonify({"error": "Internal server error"}), 500
+
+    cleanup_old_history()
+    return jsonify(result_dict), 201
 
 
 @app.route("/api/history", methods=["GET"])
 def list_history():
     # A non-integer ?limit= must not 500 the endpoint.
     try:
-        limit = int(request.args.get("limit", 20))
+        limit = int(request.args.get("limit", 50))
     except (TypeError, ValueError):
-        limit = 20
+        limit = 50
     limit = max(1, min(limit, 100))
     service_type = request.args.get("service_type")
+    cutoff = datetime.now(timezone.utc) - timedelta(days=HISTORY_RETENTION_DAYS)
 
     session = SessionLocal()
     try:
-        query = session.query(CalculationHistory).order_by(desc(CalculationHistory.created_at))
+        query = (
+            session.query(CalculationHistory)
+            .filter(CalculationHistory.created_at >= cutoff)
+            .order_by(desc(CalculationHistory.created_at))
+        )
         if service_type:
             query = query.filter(CalculationHistory.service_type == service_type)
         records = query.limit(limit).all()

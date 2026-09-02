@@ -54,7 +54,7 @@ Edit `calcu-sg` → **Inbound rules**:
 | SSH | TCP | 22 | **My IP** | So you can log in. Never `0.0.0.0/0`. |
 | HTTP | TCP | 80 | `0.0.0.0/0` (and `::/0`) | So the public can reach the app. |
 
-Do **not** open 5432 (Postgres), 5001–5003 (the engines), or 8080. Outbound: leave the default "all traffic" (needed to `apt` and pull images).
+Do **not** open 5432 (Postgres), 5001/5003 (the engines), or 8081. Outbound: leave the default "all traffic" (needed to `apt` and pull images).
 
 ### A4. IAM — do you need a role? 🖐️
 
@@ -133,23 +133,18 @@ docker compose ps          # wait until every service is "running"/"healthy"
 ### B5. Verify 💻
 
 ```bash
-curl -fsS -X POST http://localhost:8080/api/scientific \
-  -H 'Content-Type: application/json' -d '{"operation":"sqrt","value":16}'
-# {"operation":"sqrt","result":4.0,"value":16.0}
+curl -fsS -X POST http://localhost:8081/api/calculate \
+  -H 'Content-Type: application/json' -d '{"operation":"add","operand1":2,"operand2":3}'
+# {"operand1":2.0,"operand2":3.0,"operation":"add","result":5.0}
 
-curl -fsS -X POST http://localhost:8080/api/financial \
-  -H 'Content-Type: application/json' \
-  -d '{"operation":"emi","principal":100000,"annual_rate":10,"tenure_months":12}'
-
-curl -fsS http://localhost:8080/api/history
+curl -fsS http://localhost:8081/api/history
 
 # Health of each backend (through the gateway is not exposed; check containers):
-docker compose exec scientific-engine  curl -fsS http://localhost:5001/health
-docker compose exec financial-engine   curl -fsS http://localhost:5002/health
+docker compose exec calculator-engine  curl -fsS http://localhost:5001/health
 docker compose exec history-service    curl -fsS http://localhost:5003/health
 ```
 
-Open **http://localhost:8080** in a browser.
+Open **http://localhost:8081** in a browser.
 
 ### B6. Logs / stop 💻
 
@@ -166,7 +161,7 @@ Needs Python 3.11+ (`sudo apt-get install -y python3 python3-pip python3-venv`).
 
 ```bash
 cd calcu
-for svc in scientific-engine financial-engine history-service; do
+for svc in calculator-engine history-service; do
   echo "=== $svc ==="
   ( cd "services/$svc" \
     && python3 -m venv .venv && . .venv/bin/activate \
@@ -257,8 +252,8 @@ First run takes a few minutes (building 5 images).
 
 ```bash
 docker compose -f docker-compose.yml -f docker-compose.prod.yml ps
-curl -fsS -X POST http://localhost/api/scientific \
-  -H 'Content-Type: application/json' -d '{"operation":"log10","value":1000}'
+curl -fsS -X POST http://localhost/api/calculate \
+  -H 'Content-Type: application/json' -d '{"operation":"multiply","operand1":6,"operand2":7}'
 curl -fsS http://localhost/api/history
 ```
 
@@ -448,7 +443,7 @@ docker system prune -a --volumes # AGGRESSIVE: removes unused images+volumes —
 |---|---|---|
 | Site won't load from laptop | `curl -v http://<IP>/` | Security group missing port 80; or `HTTP_PORT` not 80 in `.env` |
 | `history-service` unhealthy | `docker compose $CF logs history-service` | Postgres still starting — it retries ~30s; if persistent, check `DATABASE_URL` and the `postgres` container |
-| "Expected JSON but got text/html" in UI | — | You hit the wrong port — use the gateway (`:80` prod, `:8080` local), not a backend |
+| "Expected JSON but got text/html" in UI | — | You hit the wrong port — use the gateway (`:80` prod, `:8081` local), not a backend |
 | Postgres won't start, "directory not empty" | `docker compose $CF logs postgres` | Corrupted volume — `docker volume rm calcu-postgres-data` (destroys data) |
 | Out of memory on `t3.micro` | `free -m`, `docker stats` | Add swap: `sudo fallocate -l 2G /swapfile && sudo chmod 600 /swapfile && sudo mkswap /swapfile && sudo swapon /swapfile && echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab` |
 | Need a shell in a container | `docker compose $CF exec <service> sh` | — |
@@ -490,7 +485,7 @@ IAM role you created. Terminating the instance also deletes its EBS volume
 cp .env.example .env
 docker compose up -d --build
 docker compose ps
-# http://localhost:8080
+# http://localhost:8081
 docker compose logs -f
 docker compose down [-v]
 

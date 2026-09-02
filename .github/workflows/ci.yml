@@ -50,7 +50,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        service: [scientific-engine, financial-engine, history-service]
+        service: [calculator-engine, history-service]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -84,8 +84,7 @@ jobs:
       fail-fast: false
       matrix:
         service:
-          - { name: scientific-engine, context: services/scientific-engine }
-          - { name: financial-engine,  context: services/financial-engine }
+          - { name: calculator-engine, context: services/calculator-engine }
           - { name: history-service,   context: services/history-service }
           - { name: frontend,          context: frontend }
           - { name: nginx,             context: nginx }

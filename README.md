@@ -1,30 +1,31 @@
-# calcu — Distributed Scientific & Financial Calculator
+# calcu — Simple Calculator
 
-An end-to-end DevOps demo: Python/Flask microservices behind an Nginx gateway,
-containerised with Docker, tested and shipped by GitHub Actions + Jenkins, and
-deployable three ways — **Docker Compose locally**, **Docker Compose on an AWS
-EC2 instance**, or a **local Kubernetes cluster** (Minikube/K3s/MicroK8s).
+A basic web calculator: add, subtract, multiply, and divide, with your last
+7 days of calculations saved automatically. Under the hood it's a small set
+of containerized services, so it also doubles as a DevOps demo (Docker,
+Kubernetes, CI/CD) — see [`DEVOPS_GUIDE.md`](DEVOPS_GUIDE.md) and
+[`RUNBOOK.md`](RUNBOOK.md) if you want the operator-level detail.
 
-📘 **New here? Read the two guides:**
+## What it does
 
-| Guide | What it covers |
-|---|---|
-| [`DEVOPS_GUIDE.md`](DEVOPS_GUIDE.md) | Beginner-friendly walkthrough of the whole project — what every folder does, and plain-English explanations of Nginx, the CI/CD pipeline, Dockerfiles, and Compose/EC2 deployment. |
-| [`RUNBOOK.md`](RUNBOOK.md) | The manual operator guide: every exact Linux command to build, test, and run the app from scratch — locally and on a brand-new EC2 instance — plus the AWS steps (instance, security group, IAM) that a human must do by hand. |
+- **Calculate**: enter two numbers, pick `+ − × ÷`, get the result.
+- **History**: every calculation is saved to a PostgreSQL database and shown
+  on the page. Only the last **7 days** are kept — anything older is deleted
+  automatically, no manual cleanup needed.
 
 ## Architecture
 
 ```
                          ┌────────────┐
-   client ───────────▶   │   Nginx    │   calcu-nginx — reverse proxy / API gateway
-                         └─────┬──────┘   (or the Nginx Ingress on Kubernetes)
-              ┌────────────────┼────────────────┬───────────────┐
-              ▼                ▼                ▼                ▼
-        ┌──────────┐   ┌──────────────┐  ┌──────────────┐  ┌──────────────┐
-        │ frontend │   │  scientific  │  │  financial   │  │   history    │
-        │ (static) │   │   engine     │  │   engine     │  │   service    │
-        └──────────┘   └──────┬───────┘  └──────┬───────┘  └──────┬───────┘
-                              └─────────────────┴─────────────────┘
+   client ───────────▶   │   Nginx    │   calcu-nginx — reverse proxy / gateway
+                         └─────┬──────┘
+              ┌────────────────┼────────────────┐
+              ▼                ▼                 ▼
+        ┌──────────┐   ┌──────────────┐   ┌──────────────┐
+        │ frontend │   │  calculator  │   │   history    │
+        │ (static) │   │   engine     │   │   service    │
+        └──────────┘   └──────┬───────┘   └──────┬───────┘
+                              └──────────────────┴─────────────────┐
                                                  │  POST /api/history
                                                  ▼
                                          ┌───────────────┐
@@ -34,11 +35,10 @@ EC2 instance**, or a **local Kubernetes cluster** (Minikube/K3s/MicroK8s).
 
 | Component | Image | Port | Role |
 |---|---|---|---|
-| frontend | `calcu-frontend` | 80 | Static HTML/CSS/JS UI (served by Nginx) |
-| scientific-engine | `calcu-scientific-engine` | 5001 | `POST /api/scientific` — trig, logs, roots, factorial |
-| financial-engine | `calcu-financial-engine` | 5002 | `POST /api/financial` — simple/compound interest, EMI |
-| history-service | `calcu-history-service` | 5003 | `GET/POST /api/history` — persists every calculation |
-| nginx | `calcu-nginx` | 80 | Routes `/api/*` to the engines, everything else to the frontend |
+| frontend | `calcu-frontend` | 80 | The web page (served by Nginx) |
+| calculator-engine | `calcu-calculator-engine` | 5001 | `POST /api/calculate` — add, subtract, multiply, divide |
+| history-service | `calcu-history-service` | 5003 | `GET/POST /api/history` — saves and reads calculations; deletes anything older than 7 days |
+| nginx | `calcu-nginx` | 80 | Routes `/api/*` to the right service, everything else to the frontend |
 | postgres | `postgres:16-alpine` | 5432 | Stores calculation history |
 
 All image, container, network, and volume names use the **`calcu-`** prefix.
@@ -52,18 +52,19 @@ docker compose up -d --build
 docker compose ps
 ```
 
-Open **http://localhost:8080**.
+Open **http://localhost:8081**.
+
+> Port 8081 is used instead of the more common 8080 because 8080 is already
+> taken by Jenkins on this machine. Change `HTTP_PORT` in `.env` if you need
+> a different port.
 
 ```bash
-# Try the APIs directly:
-curl -X POST http://localhost:8080/api/scientific \
-  -H 'Content-Type: application/json' -d '{"operation":"sqrt","value":16}'
-
-curl -X POST http://localhost:8080/api/financial \
+# Try the API directly:
+curl -X POST http://localhost:8081/api/calculate \
   -H 'Content-Type: application/json' \
-  -d '{"operation":"emi","principal":100000,"annual_rate":10,"tenure_months":12}'
+  -d '{"operation":"add","operand1":2,"operand2":3}'
 
-curl http://localhost:8080/api/history
+curl http://localhost:8081/api/history
 
 # Tear down (add -v to also wipe the database volume):
 docker compose down
@@ -87,9 +88,8 @@ Then browse to `http://<EC2 public IP>`.
 ## Run the unit tests
 
 ```bash
-cd services/scientific-engine && pip install -r requirements.txt pytest && pytest -v
-cd ../financial-engine        && pip install -r requirements.txt pytest && pytest -v
-cd ../history-service         && pip install -r requirements.txt pytest && pytest -v
+cd services/calculator-engine && pip install -r requirements.txt pytest && pytest -v
+cd ../history-service        && pip install -r requirements.txt pytest && pytest -v
 ```
 
 ## Deploy to local Kubernetes (Minikube / K3s / MicroK8s)
@@ -97,9 +97,8 @@ cd ../history-service         && pip install -r requirements.txt pytest && pytes
 ```bash
 # 1. Build the images INTO the cluster's Docker daemon (Minikube shown):
 eval $(minikube docker-env)
+docker build -t calcu-calculator-engine:latest  services/calculator-engine
 docker build -t calcu-history-service:latest    services/history-service
-docker build -t calcu-scientific-engine:latest  services/scientific-engine
-docker build -t calcu-financial-engine:latest   services/financial-engine
 docker build -t calcu-frontend:latest           frontend
 docker build -t calcu-nginx:latest              nginx
 
@@ -119,8 +118,13 @@ kubectl get pods -n calcu
 minikube service gateway -n calcu --url        # prints the URL to visit
 ```
 
-`k8s/gateway.yaml` (a NodePort running `calcu-nginx`) works with **no** Ingress
-Controller. `k8s/ingress.yaml` is a second access path once one is enabled.
+If your cluster already runs its own ingress (e.g. **Traefik** on K3s),
+`k8s/ingress.yaml` is a second access path — `k8s/gateway.yaml`'s NodePort
+works either way and needs no ingress controller at all.
+
+`k8s/gateway.yaml` (a NodePort running `calcu-nginx`) works with **no**
+Ingress Controller. `k8s/ingress.yaml` is a second access path once one is
+enabled.
 
 ## CI/CD
 
@@ -152,10 +156,9 @@ Also set your Docker Hub username in [`Jenkinsfile`](Jenkinsfile) (`DOCKERHUB_US
 
 ```
 calcu/
-├── frontend/                     static HTML/CSS/JS UI + its Dockerfile
+├── frontend/                     the web page (HTML/CSS/JS) + its Dockerfile
 ├── services/
-│   ├── scientific-engine/        Flask + Gunicorn — /api/scientific
-│   ├── financial-engine/         Flask + Gunicorn — /api/financial
+│   ├── calculator-engine/        Flask + Gunicorn — /api/calculate
 │   └── history-service/          Flask + Gunicorn + SQLAlchemy — /api/history
 ├── db/init.sql                   Postgres schema bootstrap (Compose)
 ├── nginx/                        gateway config + Dockerfile (calcu-nginx)
@@ -175,7 +178,8 @@ calcu/
 | Problem | Fix |
 |---|---|
 | `docker compose up` fails on `history-service` | Postgres wasn't ready; the service retries for ~30s on its own — re-run `docker compose up -d` if it still shows unhealthy |
-| Browser shows "Request failed: Expected JSON but got text/html" | You reached the bare `frontend` instead of the `nginx` gateway — use the gateway URL (`:8080` locally, `:30080` NodePort on k8s) |
+| Browser shows "Request failed: Expected JSON but got text/html" | You reached the bare `frontend` instead of the `nginx` gateway — use the gateway URL (`:8081` locally, `:30080` NodePort on k8s) |
+| Port 8080 already in use | That's expected — Jenkins owns 8080 on this host. calcu listens on **8081** by default (see `.env`) |
 | HPA shows `<unknown>` targets | `metrics-server` isn't enabled in the cluster |
 | EC2: site doesn't load | Security group must allow inbound TCP 80; `.env` must have `HTTP_PORT=80`; check `docker compose ps` |
 | Slack messages never arrive | Secret/credential names must match exactly: `SLACK_WEBHOOK_URL` (GitHub), `slack-webhook-url` (Jenkins) |

@@ -14,19 +14,18 @@ Each small program is a **microservice**.
 
 | Microservice | Language | What it does | Talks to |
 |---|---|---|---|
-| **frontend** | HTML/CSS/JS | The web page you see. Has buttons and shows results. | The browser calls the other services *through Nginx*. |
-| **scientific-engine** | Python (Flask) | Does `sin`, `cos`, `log`, `sqrt`, `factorial`, … | Calls history-service to log each calculation. |
-| **financial-engine** | Python (Flask) | Does simple interest, compound interest, EMI. | Calls history-service to log each calculation. |
-| **history-service** | Python (Flask + SQLAlchemy) | Reads/writes the list of past calculations. | Reads/writes **PostgreSQL**. |
+| **frontend** | HTML/CSS/JS | The web page you see. Has the calculator and shows results. | The browser calls the other services *through Nginx*. |
+| **calculator-engine** | Python (Flask) | Does `add`, `subtract`, `multiply`, `divide`. | Calls history-service to log each calculation. |
+| **history-service** | Python (Flask + SQLAlchemy) | Reads/writes the list of past calculations; deletes anything older than 7 days. | Reads/writes **PostgreSQL**. |
 | **PostgreSQL** | — | The database. Stores the history rows on disk. | Nobody else — only history-service. |
 | **nginx** | — | The "front door". Decides which service each request goes to. | All of the above. |
 
 ### Why split it up?
 
-- **Independent scaling** — trig math is CPU-heavy; you can run 8 copies of
-  scientific-engine and only 1 database.
-- **Independent deploys** — fix a bug in the financial formulas without
-  touching anything else.
+- **Independent scaling** — you can run several copies of calculator-engine
+  under load and only 1 database.
+- **Independent deploys** — fix a bug in the arithmetic without touching
+  anything else.
 - **Clear boundaries** — only history-service knows how the database works.
 - **It's a teaching project** — this is the smallest realistic setup that
   exercises every common DevOps tool.
@@ -34,30 +33,31 @@ Each small program is a **microservice**.
 ### How a single click flows through the system
 
 ```
-You click "Calculate" (sqrt of 16)
+You click "Calculate" (2 + 3)
   │
   ▼
-Browser sends:  POST /api/scientific   {"operation":"sqrt","value":16}
+Browser sends:  POST /api/calculate   {"operation":"add","operand1":2,"operand2":3}
   │
   ▼
-NGINX sees the path starts with /api/scientific  →  forwards to scientific-engine:5001
+NGINX sees the path starts with /api/calculate  →  forwards to calculator-engine:5001
   │
   ▼
-scientific-engine computes 4.0
-  │           └──▶ fires POST /api/history {"expression":"sqrt(16.0)","result":4.0,...}
+calculator-engine computes 5.0
+  │           └──▶ fires POST /api/history {"expression":"2.0 + 3.0","result":5.0,...}
   │                       │
   │                       ▼
   │                 history-service  →  INSERT INTO calculation_history ...  →  PostgreSQL
   │
   ▼
-scientific-engine replies  {"operation":"sqrt","value":16.0,"result":4.0}
+calculator-engine replies  {"operation":"add","operand1":2.0,"operand2":3.0,"result":5.0}
   │
   ▼
-NGINX passes it straight back to the browser, which shows "sqrt(16) = 4.0"
+NGINX passes it straight back to the browser, which shows "= 5"
 ```
 
-Every few seconds the frontend also calls `GET /api/history` so the "Live
-Calculation History" panel updates even when *someone else* did the maths.
+The frontend also calls `GET /api/history` after every calculation (and on
+page load) so the history panel stays current — showing only the last 7 days,
+since history-service deletes anything older automatically.
 
 ---
 
@@ -71,7 +71,7 @@ calcu/
 │   ├── app.js                 Behaviour — the fetch() calls to /api/*.
 │   └── Dockerfile             How to package it into a container.
 │
-├── services/                  The three Python microservices. Same shape each:
+├── services/                  The two Python microservices. Same shape each:
 │   ├── <service>/app.py           The Flask application (routes + logic).
 │   ├── <service>/wsgi.py          Entry point Gunicorn imports in production.
 │   ├── <service>/requirements.txt Python libraries to install.
@@ -114,7 +114,7 @@ comes *with* the program.
 
 ### A Dockerfile is the recipe for an image
 
-Here is `services/scientific-engine/Dockerfile`, annotated:
+Here is `services/calculator-engine/Dockerfile`, annotated:
 
 ```dockerfile
 # ---- Build stage: install dependencies in a throwaway layer ----
@@ -172,19 +172,19 @@ answer each incoming request. The client only ever sees one address.
 
 ### Why calcu needs it
 
-The browser makes calls to `/api/scientific`, `/api/financial`,
-`/api/history`, and also loads `/`, `/style.css`, `/app.js`. Those live on
-**four different services** on four different ports. Without a gateway the
-frontend JavaScript would need to know every service's address, and browsers
-would block the cross-origin calls anyway.
+The browser makes calls to `/api/calculate` and `/api/history`, and also
+loads `/`, `/style.css`, `/app.js`. Those live on **three different
+services** on three different ports. Without a gateway the frontend
+JavaScript would need to know every service's address, and browsers would
+block the cross-origin calls anyway.
 
-Nginx gives everything **one origin** (`http://localhost:8080`, or your EC2
+Nginx gives everything **one origin** (`http://localhost:8081`, or your EC2
 address) and routes internally.
 
 ### The routing rules (`nginx/nginx.conf`), explained
 
 ```nginx
-upstream scientific_upstream { server scientific-engine:5001; }   # a friendly name
+upstream calculator_upstream { server calculator-engine:5001; }   # a friendly name
 ...
 
 server {
@@ -196,11 +196,10 @@ server {
     error_page 404 = @json_404;
     error_page 500 502 503 504 = @json_5xx;
 
-    location /api/scientific {                       # path starts with this →
-        proxy_pass http://scientific_upstream/api/scientific;   # send to that service
+    location /api/calculate {                        # path starts with this →
+        proxy_pass http://calculator_upstream/api/calculate;   # send to that service
         proxy_set_header X-Real-IP $remote_addr;     # tell the backend who called
     }
-    location /api/financial { proxy_pass http://financial_upstream/api/financial; }
     location /api/history   { proxy_pass http://history_upstream/api/history; }
 
     location / {                                     # everything else →
@@ -209,7 +208,7 @@ server {
 }
 ```
 
-`scientific-engine`, `financial-engine`, etc. are **DNS names** that Docker
+`calculator-engine`, `history-service`, etc. are **DNS names** that Docker
 Compose (and Kubernetes) create automatically — every service can reach every
 other by its name on the private network.
 
@@ -250,8 +249,8 @@ industry, so the demo shows both):
 
 | Stage | Job name | What happens | Fails the build if… |
 |---|---|---|---|
-| **Test** | `test` | Spins up 3 parallel runners (one per Python service), installs deps, runs `pytest -v`. | any test fails |
-| **Build** | `build-scan-push` | `docker build` for all 5 images (3 services + frontend + nginx), each tagged with the **git commit SHA** and `latest`. | a Dockerfile is broken |
+| **Test** | `test` | Spins up 2 parallel runners (one per Python service), installs deps, runs `pytest -v`. | any test fails |
+| **Build** | `build-scan-push` | `docker build` for all 4 images (2 services + frontend + nginx), each tagged with the **git commit SHA** and `latest`. | a Dockerfile is broken |
 | **Scan** | (same job) | Runs **Trivy** against each freshly built image, printing CRITICAL/HIGH OS+library vulnerabilities. Currently **non-blocking** (`--exit-code 0`) — it reports but doesn't stop the pipeline, because base-image CVEs are outside our control. | never (by design; flip to `--exit-code 1` for a hard gate) |
 | **Push** | (same job) | `docker push` both tags to Docker Hub. **Only on a real push to `main`**, never on a pull request. | Docker Hub rejects the push |
 | **Notify** | `notify` | One Slack message: ✅ SUCCESS or ❌ FAILURE, with repo/branch/commit/author. Runs even if earlier stages failed. | never |
@@ -290,7 +289,7 @@ you paste the real values into GitHub's and Jenkins' own encrypted stores. See
 
 ## 6. Docker Compose — one file, the whole stack
 
-`docker-compose.yml` is a single description of all six containers: what image
+`docker-compose.yml` is a single description of all five containers: what image
 each uses, what environment variables it gets, which depends on which, and what
 network they share.
 
@@ -321,7 +320,7 @@ services:
   nginx:
     build: { context: ./nginx }
     ports:
-      - "${HTTP_PORT:-8080}:80"      # host:container — the ONLY port exposed to you
+      - "${HTTP_PORT:-8081}:80"      # host:container — the ONLY port exposed to you
 
 networks:
   calcu-net: { driver: bridge }     # private network; service names resolve on it
@@ -372,8 +371,7 @@ The overlay only changes what's different on a server:
    │  Docker Engine                               │
    │   └─ docker compose project "calcu"          │
    │        calcu-nginx  :80 ─┬─ calcu-frontend   │
-   │                          ├─ calcu-scientific │
-   │                          ├─ calcu-financial  │
+   │                          ├─ calcu-calculator │
    │                          └─ calcu-history ─ calcu-postgres (private, volume-backed)
    │                                              │
    │  systemd unit "calcu.service" → starts it on boot
@@ -407,10 +405,10 @@ MicroK8s) — no cloud Kubernetes.
 | Manifest | Kubernetes objects | Compose equivalent |
 |---|---|---|
 | `postgres-pv-pvc-secret.yaml` | `Namespace`, `Secret`, `PersistentVolumeClaim`, `StatefulSet`, headless `Service` | the `postgres` service + its volume + env |
-| `deployments-and-services.yaml` | 4 × (`Deployment` + `Service`) | the 4 app services |
+| `deployments-and-services.yaml` | 3 × (`Deployment` + `Service`) | the 3 app services |
 | `gateway.yaml` | `Deployment` + NodePort `Service` running `calcu-nginx` | the `nginx` service + its published port |
 | `ingress.yaml` | `Ingress` | an alternative to `gateway.yaml`, using the cluster's shared ingress controller |
-| `hpa.yaml` | 2 × `HorizontalPodAutoscaler` | *(no equivalent — Compose can't autoscale)* |
+| `hpa.yaml` | `HorizontalPodAutoscaler` | *(no equivalent — Compose can't autoscale)* |
 
 Concepts worth knowing:
 
@@ -437,7 +435,7 @@ that were made during the cleanup:
 |---|---|---|
 | **history-service schema** | Table only created by `db/init.sql`, so on Kubernetes (no init hook) the first write failed with *relation "calculation_history" does not exist*. | `init_db()` runs SQLAlchemy `create_all()` on startup, with a bounded retry while Postgres wakes up. Works in every environment. |
 | **DB connection pool** | Fixed `pool_size=5, max_overflow=10` per worker — could exhaust Postgres' 100-connection limit across replicas. | Configurable via `DB_POOL_SIZE` / `DB_MAX_OVERFLOW`; smaller, documented defaults; `pool_recycle` added. |
-| **scientific-engine overflow** | `math.exp(1000)` / huge `pow` raised `OverflowError`, which fell through to a generic HTTP 500. | Caught → HTTP 400 with a clear message. `factorial` input validated and capped at 170. |
+| **Scope** | Separate `scientific-engine` (trig/log/factorial) and `financial-engine` (interest/EMI) services, exposed through a multi-section frontend. | Simplified to a single `calculator-engine` (add/subtract/multiply/divide) behind a one-screen calculator UI, plus automatic 7-day history retention. |
 | **CI / Trivy** | Used `aquasecurity/trivy-action@v0.36.0` (a Marketplace action from a family compromised in March 2026). Slack payload built by string-interpolating the commit message → a message with a `"` broke the JSON. | Trivy runs from the pinned official image `aquasec/trivy:0.55.2`; Slack payload built with `jq` (injection-safe); workflow given least-privilege `permissions:` and `concurrency:`. |
 | **k8s ingress** | (verified) `namespace: calcu` present and correct. | unchanged |
 | **Naming** | Mixed: `history-service:latest` in k8s, `calcu-history-service` in CI. `gateway.yaml` carried a byte-for-byte copy of `nginx.conf` in a ConfigMap. | Everything is `calcu-<service>`. `gateway.yaml` runs the real `calcu-nginx` image — one source of truth for the routing config. |

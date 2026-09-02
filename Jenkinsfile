@@ -44,7 +44,7 @@ pipeline {
         // The Deployments we need to update, space-separated. The nginx gateway
         // is not listed: its image tag is ":latest" and its routing config is
         // baked in, so it does not participate in tag-based rollouts.
-        SERVICES = 'scientific-engine financial-engine history-service frontend'
+        SERVICES = 'calculator-engine history-service frontend'
     }
 
     options {
