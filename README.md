@@ -1,185 +1,172 @@
-# calcu — Simple Calculator
+# Calculator App — DevOps Learning Project
 
-A basic web calculator: add, subtract, multiply, and divide, with your last
-7 days of calculations saved automatically. Under the hood it's a small set
-of containerized services, so it also doubles as a DevOps demo (Docker,
-Kubernetes, CI/CD) — see [`DEVOPS_GUIDE.md`](DEVOPS_GUIDE.md) and
-[`RUNBOOK.md`](RUNBOOK.md) if you want the operator-level detail.
-
-## What it does
-
-- **Calculate**: enter two numbers, pick `+ − × ÷`, get the result.
-- **History**: every calculation is saved to a PostgreSQL database and shown
-  on the page. Only the last **7 days** are kept — anything older is deleted
-  automatically, no manual cleanup needed.
+A very simple calculator app built to practice a full DevOps pipeline: Docker,
+Kubernetes, Terraform, GitHub Actions, and AWS.
 
 ## Architecture
 
 ```
-                         ┌────────────┐
-   client ───────────▶   │   Nginx    │   calcu-nginx — reverse proxy / gateway
-                         └─────┬──────┘
-              ┌────────────────┼────────────────┐
-              ▼                ▼                 ▼
-        ┌──────────┐   ┌──────────────┐   ┌──────────────┐
-        │ frontend │   │  calculator  │   │   history    │
-        │ (static) │   │   engine     │   │   service    │
-        └──────────┘   └──────┬───────┘   └──────┬───────┘
-                              └──────────────────┴─────────────────┐
-                                                 │  POST /api/history
-                                                 ▼
-                                         ┌───────────────┐
-                                         │  PostgreSQL   │
-                                         └───────────────┘
+Frontend (HTML/CSS/JS) → Backend (FastAPI) → PostgreSQL
 ```
 
-| Component | Image | Port | Role |
-|---|---|---|---|
-| frontend | `calcu-frontend` | 80 | The web page (served by Nginx) |
-| calculator-engine | `calcu-calculator-engine` | 5001 | `POST /api/calculate` — add, subtract, multiply, divide |
-| history-service | `calcu-history-service` | 5003 | `GET/POST /api/history` — saves and reads calculations; deletes anything older than 7 days |
-| nginx | `calcu-nginx` | 80 | Routes `/api/*` to the right service, everything else to the frontend |
-| postgres | `postgres:16-alpine` | 5432 | Stores calculation history |
+Every calculation is sent to the backend, saved in Postgres, and the result is
+returned to the frontend.
 
-All image, container, network, and volume names use the **`calcu-`** prefix.
+Production architecture on AWS:
 
-## Quick start (local, Docker Compose)
-
-```bash
-cd calcu
-cp .env.example .env          # defaults are fine for local use
-docker compose up -d --build
-docker compose ps
+```
+Route 53 → EC2 (Frontend + Backend containers) → RDS PostgreSQL
+                     ↑
+              GitHub Actions → ECR
+              Terraform → provisions everything
 ```
 
-Open **http://localhost:8081**.
+## Project structure
 
-> Port 8081 is used instead of the more common 8080 because 8080 is already
-> taken by Jenkins on this machine. Change `HTTP_PORT` in `.env` if you need
-> a different port.
+```
+frontend/     static HTML/CSS/JS calculator UI
+backend/      FastAPI REST API (POST /calculate, GET /health)
+database/     Postgres init.sql (creates the calculations table)
+kubernetes/   Deployment/Service/Secret/ConfigMap/PVC manifests
+scripts/      bash scripts for build/deploy
+terraform/    AWS infrastructure (EC2, ECR, IAM, RDS, S3, Route 53)
+.github/      GitHub Actions CI/CD pipeline
+```
+
+## Run locally with Docker Compose
 
 ```bash
-# Try the API directly:
-curl -X POST http://localhost:8081/api/calculate \
-  -H 'Content-Type: application/json' \
-  -d '{"operation":"add","operand1":2,"operand2":3}'
+cp .env.example .env
+docker compose up --build
+```
 
-curl http://localhost:8081/api/history
+- Frontend: http://localhost:3000
+- Backend: http://localhost:8000/health
+- Postgres: localhost:5432
 
-# Tear down (add -v to also wipe the database volume):
+Stop everything:
+
+```bash
 docker compose down
 ```
 
-## Deploy on AWS EC2
-
-Full step-by-step (instance, security group, IAM, commands) is in
-[`RUNBOOK.md`](RUNBOOK.md). The short version, once Docker is installed on the
-instance and the repo is at `/opt/calcu`:
+Stop and wipe the database volume:
 
 ```bash
-cd /opt/calcu
-cp .env.example .env
-# edit .env: set HTTP_PORT=80 and a strong POSTGRES_PASSWORD
-ENV=prod ./deploy/deploy.sh
+docker compose down -v
 ```
 
-Then browse to `http://<EC2 public IP>`.
-
-## Run the unit tests
+## Bash scripts
 
 ```bash
-cd services/calculator-engine && pip install -r requirements.txt pytest && pytest -v
-cd ../history-service        && pip install -r requirements.txt pytest && pytest -v
+scripts/docker-build.sh        # builds backend:latest and frontend:latest images
+scripts/kubernetes-deploy.sh   # applies all kubernetes/ manifests
+scripts/kubernetes-delete.sh   # removes everything from the cluster
+scripts/aws-deploy.sh          # run on the EC2 instance: pulls from ECR, starts containers
 ```
 
-## Deploy to local Kubernetes (Minikube / K3s / MicroK8s)
+Make them executable once:
 
 ```bash
-# 1. Build the images INTO the cluster's Docker daemon (Minikube shown):
-eval $(minikube docker-env)
-docker build -t calcu-calculator-engine:latest  services/calculator-engine
-docker build -t calcu-history-service:latest    services/history-service
-docker build -t calcu-frontend:latest           frontend
-docker build -t calcu-nginx:latest              nginx
-
-# 2. Enable the add-ons the manifests use:
-minikube addons enable ingress          # for k8s/ingress.yaml
-minikube addons enable metrics-server   # for k8s/hpa.yaml
-
-# 3. Apply everything (namespace first):
-kubectl apply -f k8s/postgres-pv-pvc-secret.yaml
-kubectl apply -f k8s/deployments-and-services.yaml
-kubectl apply -f k8s/gateway.yaml
-kubectl apply -f k8s/hpa.yaml
-kubectl apply -f k8s/ingress.yaml
-
-# 4. Check and open:
-kubectl get pods -n calcu
-minikube service gateway -n calcu --url        # prints the URL to visit
+chmod +x scripts/*.sh
 ```
 
-If your cluster already runs its own ingress (e.g. **Traefik** on K3s),
-`k8s/ingress.yaml` is a second access path — `k8s/gateway.yaml`'s NodePort
-works either way and needs no ingress controller at all.
+## Kubernetes
 
-`k8s/gateway.yaml` (a NodePort running `calcu-nginx`) works with **no**
-Ingress Controller. `k8s/ingress.yaml` is a second access path once one is
-enabled.
+Requires a running cluster (Docker Desktop, minikube, kind, etc.) and `kubectl`
+configured, plus the images built locally (`scripts/docker-build.sh`) so the
+cluster can use `backend:latest` / `frontend:latest`.
 
-## CI/CD
-
-| Pipeline | File | Trigger | Does |
-|---|---|---|---|
-| CI | [`.github/workflows/ci.yml`](.github/workflows/ci.yml) | push / PR to `main` | pytest → build images → Trivy scan → push to Docker Hub (push to `main` only) → Slack |
-| CD | [`Jenkinsfile`](Jenkinsfile) | manual / webhook | `kubectl set image` rolling update of every Deployment → verify rollout → Slack, auto-rollback on failure |
-
-**Secrets you must configure yourself** (they are never committed):
-
-*GitHub* → repo Settings → Secrets and variables → Actions:
-
-| Secret | Value |
-|---|---|
-| `DOCKERHUB_USERNAME` | your Docker Hub username |
-| `DOCKERHUB_TOKEN` | a Docker Hub **access token** (Account Settings → Security) |
-| `SLACK_WEBHOOK_URL` | a Slack incoming-webhook URL |
-
-*Jenkins* → Manage Jenkins → Credentials → Global:
-
-| Kind | ID (exact) | Value |
-|---|---|---|
-| Secret file | `kubeconfig-calcu` | your cluster's kubeconfig file |
-| Secret text | `slack-webhook-url` | your Slack incoming-webhook URL |
-
-Also set your Docker Hub username in [`Jenkinsfile`](Jenkinsfile) (`DOCKERHUB_USERNAME`).
-
-## Repository layout
-
+```bash
+./scripts/kubernetes-deploy.sh
 ```
-calcu/
-├── frontend/                     the web page (HTML/CSS/JS) + its Dockerfile
-├── services/
-│   ├── calculator-engine/        Flask + Gunicorn — /api/calculate
-│   └── history-service/          Flask + Gunicorn + SQLAlchemy — /api/history
-├── db/init.sql                   Postgres schema bootstrap (Compose)
-├── nginx/                        gateway config + Dockerfile (calcu-nginx)
-├── deploy/                       EC2 provisioning + deployment scripts + systemd unit
-├── docker-compose.yml            base stack (local + EC2)
-├── docker-compose.prod.yml       EC2 overrides (port 80, log rotation, no DB port)
-├── .env.example                  copy to .env
-├── .github/workflows/ci.yml      GitHub Actions CI
-├── Jenkinsfile                   Jenkins CD
-├── k8s/                          Kubernetes manifests
-├── DEVOPS_GUIDE.md               ← beginner explanation
-└── RUNBOOK.md                    ← manual operator guide
+
+- Frontend: http://localhost:30300
+- Backend: http://localhost:30800/health
+
+Remove everything:
+
+```bash
+./scripts/kubernetes-delete.sh
 ```
+
+Resources created: `app-config` and `postgres-init` ConfigMaps, `app-secret`
+Secret, `postgres-pvc` PVC, and `postgres` / `backend` / `frontend`
+Deployments + Services.
+
+## GitHub Actions (CI/CD)
+
+`.github/workflows/ci-cd.yml` runs on every push to `main`:
+
+1. Logs in to AWS using GitHub Secrets (no credentials in the workflow file).
+2. Builds `backend` and `frontend` Docker images.
+3. Pushes them to ECR as `calculator-backend` and `calculator-frontend`,
+   tagged with both `latest` and the Git commit SHA.
+
+Required GitHub Secrets:
+
+- `AWS_ACCESS_KEY_ID`
+- `AWS_SECRET_ACCESS_KEY`
+
+## Terraform (AWS infrastructure)
+
+Provisions: ECR repositories, an IAM role letting EC2 pull from ECR, a
+security group + EC2 instance (with Docker pre-installed via user data), an
+RDS PostgreSQL instance, an S3 bucket, and a Route 53 DNS record.
+
+```bash
+cd terraform
+terraform init
+terraform apply \
+  -var="db_password=YOUR_STRONG_PASSWORD" \
+  -var="key_name=YOUR_EC2_KEY_PAIR_NAME" \
+  -var="domain_name=YOUR_DOMAIN_NAME"
+```
+
+`domain_name` must already have a Route 53 hosted zone in your AWS account.
+`key_name` must be an existing EC2 key pair (used for SSH access).
+
+Outputs include the ECR repository URLs, the EC2 public IP, the RDS
+endpoint, the S3 bucket name, and the final domain.
+
+Tear down:
+
+```bash
+terraform destroy
+```
+
+## Deploying to EC2 (ECR → EC2 → RDS)
+
+1. `terraform apply` to create the infrastructure.
+2. Push images to ECR (either via GitHub Actions, or manually with
+   `scripts/docker-build.sh` + `docker push`).
+3. SSH into the EC2 instance (`terraform output ec2_public_ip`).
+4. Export the required variables and run the deploy script:
+
+```bash
+export AWS_ACCOUNT_ID=<your account id>
+export AWS_REGION=us-east-1
+export RDS_ENDPOINT=<terraform output rds_endpoint>
+export POSTGRES_DB=calculator
+export POSTGRES_USER=calculator
+export POSTGRES_PASSWORD=<your db password>
+./scripts/aws-deploy.sh
+```
+
+5. Visit `http://<ec2_public_ip>` (or your Route 53 domain).
 
 ## Troubleshooting
 
-| Problem | Fix |
-|---|---|
-| `docker compose up` fails on `history-service` | Postgres wasn't ready; the service retries for ~30s on its own — re-run `docker compose up -d` if it still shows unhealthy |
-| Browser shows "Request failed: Expected JSON but got text/html" | You reached the bare `frontend` instead of the `nginx` gateway — use the gateway URL (`:8081` locally, `:30080` NodePort on k8s) |
-| Port 8080 already in use | That's expected — Jenkins owns 8080 on this host. calcu listens on **8081** by default (see `.env`) |
-| HPA shows `<unknown>` targets | `metrics-server` isn't enabled in the cluster |
-| EC2: site doesn't load | Security group must allow inbound TCP 80; `.env` must have `HTTP_PORT=80`; check `docker compose ps` |
-| Slack messages never arrive | Secret/credential names must match exactly: `SLACK_WEBHOOK_URL` (GitHub), `slack-webhook-url` (Jenkins) |
+- **Backend can't connect to Postgres**: the backend retries on startup for
+  ~30 seconds. If it still fails, check `POSTGRES_HOST`/`POSTGRES_PORT` env
+  vars match the database container/service name.
+- **Frontend shows "Could not reach backend"**: check `API_URL` in
+  `frontend/config.js` (Docker) or the `app-config` ConfigMap (Kubernetes) —
+  it must point to a backend address reachable from your browser.
+- **Kubernetes pods stuck in `ImagePullBackOff`**: build the images locally
+  first with `scripts/docker-build.sh` so the cluster can find
+  `backend:latest` / `frontend:latest`.
+- **RDS connection refused from EC2**: confirm the EC2 instance and RDS
+  instance are in the same VPC and the `rds_sg` security group allows port
+  5432 from the `app_sg` security group (this is set up automatically by
+  Terraform).

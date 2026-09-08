@@ -1,16 +1,10 @@
-# syntax=docker/dockerfile:1
-FROM nginx:1.27-alpine AS runtime
+FROM python:3.12-slim
 
-# Patch OS packages against CVEs already fixed upstream but not yet in the
-# base image (libssl3/libcrypto3, musl, libexpat, libpng, libxml2, zlib, ...).
-RUN apk update && apk upgrade --no-cache
+WORKDIR /app
 
-RUN rm -rf /usr/share/nginx/html/*
-COPY index.html style.css app.js /usr/share/nginx/html/
+COPY index.html style.css app.js config.js entrypoint.sh /app/
+RUN chmod +x /app/entrypoint.sh
 
 EXPOSE 80
 
-HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
-    CMD wget -qO- http://localhost:80/ >/dev/null || exit 1
-
-CMD ["nginx", "-g", "daemon off;"]
+CMD ["/app/entrypoint.sh"]

@@ -1,135 +1,52 @@
-:root {
-  --bg: #0f172a;
-  --card: #1e293b;
-  --accent: #38bdf8;
-  --text: #e2e8f0;
-  --muted: #94a3b8;
-  --error: #f87171;
-}
-
-* {
-  box-sizing: border-box;
-}
-
 body {
-  margin: 0;
-  font-family: "Segoe UI", Arial, sans-serif;
-  background: var(--bg);
-  color: var(--text);
-}
-
-header {
-  padding: 2rem 1.5rem 1rem;
-  text-align: center;
-}
-
-header h1 {
-  margin: 0;
-  font-size: 1.8rem;
-}
-
-main {
-  max-width: 480px;
-  margin: 0 auto;
-  padding: 1rem 1.5rem 3rem;
+  font-family: Arial, sans-serif;
+  background: #f0f2f5;
   display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  margin: 0;
 }
 
-.card {
-  background: var(--card);
+.calculator {
+  background: white;
+  padding: 30px;
   border-radius: 10px;
-  padding: 1.25rem;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-}
-
-.card h2 {
-  margin-top: 0;
-  font-size: 1.1rem;
-  color: var(--accent);
-}
-
-.muted {
-  color: var(--muted);
-  font-weight: normal;
-  font-size: 0.85rem;
-}
-
-.form-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  margin-bottom: 0.75rem;
-}
-
-select,
-input {
-  flex: 1;
-  min-width: 90px;
-  padding: 0.5rem;
-  border-radius: 6px;
-  border: 1px solid #334155;
-  background: #0f172a;
-  color: var(--text);
-  font-size: 1rem;
-}
-
-select {
-  flex: 0 0 60px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+  width: 300px;
   text-align: center;
 }
 
-button {
+.calculator h1 {
+  margin-top: 0;
+  font-size: 22px;
+}
+
+.calculator input,
+.calculator select,
+.calculator button {
   width: 100%;
-  padding: 0.6rem 1rem;
+  padding: 10px;
+  margin: 8px 0;
+  box-sizing: border-box;
+  font-size: 16px;
+}
+
+.calculator button {
+  background: #2563eb;
+  color: white;
   border: none;
-  border-radius: 6px;
-  background: var(--accent);
-  color: #0f172a;
-  font-weight: 600;
-  font-size: 1rem;
+  border-radius: 5px;
   cursor: pointer;
 }
 
-button:hover {
-  opacity: 0.9;
+.calculator button:hover {
+  background: #1d4ed8;
 }
 
-#refresh-btn {
-  width: auto;
-  padding: 0.4rem 0.9rem;
-  font-size: 0.85rem;
-  margin-bottom: 0.5rem;
-}
-
-.result {
-  margin-top: 0.75rem;
-  font-family: monospace;
-  font-size: 1.4rem;
-  text-align: center;
-  white-space: pre-wrap;
-}
-
-.result.error {
-  color: var(--error);
-  font-size: 1rem;
-}
-
-#history-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  max-height: 260px;
-  overflow-y: auto;
-}
-
-#history-list li {
-  padding: 0.5rem 0;
-  border-bottom: 1px solid #334155;
-  font-size: 0.9rem;
-}
-
-#history-list li.error {
-  color: var(--error);
+#result {
+  margin-top: 15px;
+  font-size: 20px;
+  font-weight: bold;
+  min-height: 28px;
 }

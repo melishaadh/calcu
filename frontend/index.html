@@ -1,39 +1,26 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Simple Calculator</title>
-<link rel="stylesheet" href="style.css" />
+  <meta charset="UTF-8" />
+  <title>Calculator</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <header>
+  <div class="calculator">
     <h1>Calculator</h1>
-  </header>
+    <input type="number" id="inputA" placeholder="First number" />
+    <select id="operation">
+      <option value="add">+ Add</option>
+      <option value="subtract">- Subtract</option>
+      <option value="multiply">* Multiply</option>
+      <option value="divide">/ Divide</option>
+    </select>
+    <input type="number" id="inputB" placeholder="Second number" />
+    <button id="calculateBtn">Calculate</button>
+    <div id="result"></div>
+  </div>
 
-  <main>
-    <section class="card">
-      <div class="form-row">
-        <input id="operand1" type="number" placeholder="First number" />
-        <select id="operation">
-          <option value="add">+</option>
-          <option value="subtract">−</option>
-          <option value="multiply">×</option>
-          <option value="divide">÷</option>
-        </select>
-        <input id="operand2" type="number" placeholder="Second number" />
-      </div>
-      <button id="calculate-btn">Calculate</button>
-      <div id="result" class="result"></div>
-    </section>
-
-    <section class="card">
-      <h2>History <span class="muted">(last 7 days)</span></h2>
-      <button id="refresh-btn">Refresh</button>
-      <ul id="history-list"></ul>
-    </section>
-  </main>
-
+  <script src="config.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
