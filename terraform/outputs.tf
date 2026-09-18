@@ -18,6 +18,3 @@ output "s3_bucket_name" {
   value = aws_s3_bucket.app_bucket.bucket
 }
 
-output "app_domain" {
-  value = aws_route53_record.app.fqdn
-}

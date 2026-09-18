@@ -1,7 +1,7 @@
 resource "aws_security_group" "rds_sg" {
   name        = "${var.project_name}-rds-sg"
   description = "Allow Postgres access from the app server"
-  vpc_id      = data.aws_vpc.default.id
+  vpc_id      = aws_vpc.main.id
 
   ingress {
     description     = "Postgres from app server"
@@ -25,7 +25,7 @@ resource "aws_security_group" "rds_sg" {
 
 resource "aws_db_subnet_group" "postgres" {
   name       = "${var.project_name}-db-subnet-group"
-  subnet_ids = data.aws_subnets.default.ids
+  subnet_ids = [aws_subnet.private_a.id, aws_subnet.private_b.id]
 }
 
 resource "aws_db_instance" "postgres" {
@@ -35,8 +35,8 @@ resource "aws_db_instance" "postgres" {
   instance_class         = var.db_instance_class
   allocated_storage      = 20
   db_name                = "calculator"
-  username                = "calculator"
-  password                = var.db_password
+  username               = "calculator"
+  password               = var.db_password
   db_subnet_group_name   = aws_db_subnet_group.postgres.name
   vpc_security_group_ids = [aws_security_group.rds_sg.id]
   publicly_accessible    = false

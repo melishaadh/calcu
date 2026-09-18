@@ -33,10 +33,6 @@ variable "key_name" {
   type        = string
 }
 
-variable "domain_name" {
-  description = "Domain name (must already have a Route 53 hosted zone) that will point to the EC2 instance"
-  type        = string
-}
 
 variable "allowed_ssh_cidr" {
   description = "CIDR block allowed to SSH into the EC2 instance"

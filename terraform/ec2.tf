@@ -1,13 +1,4 @@
-data "aws_vpc" "default" {
-  default = true
-}
 
-data "aws_subnets" "default" {
-  filter {
-    name   = "vpc-id"
-    values = [data.aws_vpc.default.id]
-  }
-}
 
 data "aws_ami" "amazon_linux" {
   most_recent = true
@@ -22,7 +13,7 @@ data "aws_ami" "amazon_linux" {
 resource "aws_security_group" "app_sg" {
   name        = "${var.project_name}-app-sg"
   description = "Allow SSH and app traffic"
-  vpc_id      = data.aws_vpc.default.id
+  vpc_id      = aws_vpc.main.id
 
   ingress {
     description = "SSH"
@@ -36,14 +27,6 @@ resource "aws_security_group" "app_sg" {
     description = "Frontend"
     from_port   = 80
     to_port     = 80
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  ingress {
-    description = "Backend"
-    from_port   = 8000
-    to_port     = 8000
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
@@ -64,7 +47,7 @@ resource "aws_instance" "app_server" {
   ami                    = data.aws_ami.amazon_linux.id
   instance_type          = var.instance_type
   key_name               = var.key_name
-  subnet_id              = data.aws_subnets.default.ids[0]
+  subnet_id              = aws_subnet.public.id
   vpc_security_group_ids = [aws_security_group.app_sg.id]
   iam_instance_profile   = aws_iam_instance_profile.ec2_profile.name
 
