@@ -8,9 +8,11 @@
       },
       "Action": "sts:AssumeRoleWithWebIdentity",
       "Condition": {
-        "StringLike": {
-          "token.actions.githubusercontent.com:sub": "repo:melishaadh/calcu:ref:refs/heads/main",
+        "StringEquals": {
           "token.actions.githubusercontent.com:aud": "sts.amazonaws.com"
+        },
+        "StringLike": {
+          "token.actions.githubusercontent.com:sub": "repo:melishaadh/calcu:*"
         }
       }
     }
