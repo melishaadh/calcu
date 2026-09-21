@@ -46,3 +46,4 @@ jobs:
           docker build -t $ECR_REGISTRY/calculator-frontend:$IMAGE_TAG -t $ECR_REGISTRY/calculator-frontend:latest ./frontend
           docker push $ECR_REGISTRY/calculator-frontend:$IMAGE_TAG
           docker push $ECR_REGISTRY/calculator-frontend:latest
+# OIDC configured
