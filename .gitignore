@@ -7,3 +7,7 @@ node_modules/
 *.tfstate.backup
 .terraform.lock.hcl
 *.pem
+
+# Terraform variable files
+*.tfvars
+*.tfvars.json
